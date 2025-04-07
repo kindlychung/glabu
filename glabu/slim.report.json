@@ -1,0 +1,275 @@
+{
+  "document": "doc.report.command",
+  "version": "ov/command/slim/1.1",
+  "engine": "linux/arm64|ALP|x.1.42.2|29e62e7836de7b1004607c51c502537ffe1969f0|2025-01-16_07:48:54AM|x",
+  "containerized": false,
+  "host_distro": {
+    "name": "Fedora Linux Asahi Remix",
+    "version": "41",
+    "display_name": "Fedora Linux Asahi Remix 41 (KDE Plasma)"
+  },
+  "type": "slim",
+  "state": "error",
+  "target_reference": "registry.gitlab.com/fa_rfro_mwrong/glabu:f88e1e1-amd64",
+  "system": {
+    "type": "",
+    "release": "",
+    "distro": {
+      "name": "",
+      "version": "",
+      "display_name": ""
+    }
+  },
+  "source_image": {
+    "identity": {
+      "id": ""
+    },
+    "size": 0,
+    "size_human": "",
+    "create_time": "",
+    "architecture": "",
+    "container_entry": {
+      "exe_path": ""
+    }
+  },
+  "minified_image_size": 0,
+  "minified_image_size_human": "",
+  "minified_image": "",
+  "minified_image_id": "",
+  "minified_image_digest": "",
+  "minified_image_has_data": false,
+  "minified_by": 0,
+  "artifact_location": "",
+  "container_report_name": "",
+  "seccomp_profile_name": "",
+  "apparmor_profile_name": "",
+  "image_stack": [
+    {
+      "is_top_image": false,
+      "id": "sha256:<missing>",
+      "full_name": "docker.io/library/alpine:latest",
+      "repo_name": "docker.io/library/alpine",
+      "version_tag": "latest",
+      "raw_tags": [
+        "docker.io/library/alpine:latest"
+      ],
+      "create_time": "2025-02-14T03:28:36Z",
+      "new_size": 8461312,
+      "new_size_human": "8.5 MB",
+      "instructions": [
+        {
+          "type": "ADD",
+          "time": "2025-02-14T03:28:36Z",
+          "is_last_instruction": true,
+          "is_nop": false,
+          "local_image_exists": true,
+          "layer_index": 0,
+          "size": 8461312,
+          "size_human": "8.5 MB",
+          "params": "alpine-minirootfs-3.21.3-aarch64.tar.gz /",
+          "command_snippet": "ADD alpine-minirootfs-3.21.3-aarch64.tar.gz ...",
+          "command_all": "ADD alpine-minirootfs-3.21.3-aarch64.tar.gz /",
+          "comment": "buildkit.dockerfile.v0",
+          "raw_tags": [
+            "docker.io/library/alpine:latest"
+          ],
+          "is_buildkit_instruction": true,
+          "inst_set_time_bucket": "2025-02-14T04:15:00+01:00",
+          "inst_set_time_index": 0,
+          "inst_set_time_reverse_index": 2
+        }
+      ]
+    },
+    {
+      "is_top_image": false,
+      "id": "sha256:<missing>",
+      "full_name": "docker.io/library/alpine:latest",
+      "repo_name": "docker.io/library/alpine",
+      "version_tag": "latest",
+      "raw_tags": [
+        "docker.io/library/alpine:latest"
+      ],
+      "create_time": "2025-02-14T03:28:36Z",
+      "new_size": 0,
+      "new_size_human": "0 B",
+      "base_image_id": "sha256:<missing>",
+      "instructions": [
+        {
+          "type": "CMD",
+          "time": "2025-02-14T03:28:36Z",
+          "is_last_instruction": true,
+          "is_nop": false,
+          "is_exec_form": true,
+          "local_image_exists": true,
+          "layer_index": 0,
+          "size": 0,
+          "params": "[\"/bin/sh\"]\n",
+          "command_snippet": "CMD [\"/bin/sh\"]\n",
+          "command_all": "CMD [\"/bin/sh\"]\n",
+          "comment": "buildkit.dockerfile.v0",
+          "raw_tags": [
+            "docker.io/library/alpine:latest"
+          ],
+          "is_buildkit_instruction": true,
+          "inst_set_time_bucket": "2025-02-14T04:15:00+01:00",
+          "inst_set_time_index": 0,
+          "inst_set_time_reverse_index": 2
+        }
+      ]
+    },
+    {
+      "is_top_image": false,
+      "id": "sha256:<missing>",
+      "full_name": "docker.io/library/alpine:latest",
+      "repo_name": "docker.io/library/alpine",
+      "version_tag": "latest",
+      "raw_tags": [
+        "docker.io/library/alpine:latest"
+      ],
+      "create_time": "2025-04-07T11:09:50Z",
+      "new_size": 0,
+      "new_size_human": "0 B",
+      "base_image_id": "sha256:<missing>",
+      "instructions": [
+        {
+          "type": "WORKDIR",
+          "time": "2025-04-07T11:09:50Z",
+          "is_last_instruction": true,
+          "is_nop": true,
+          "local_image_exists": true,
+          "layer_index": 0,
+          "size": 0,
+          "params": "/app",
+          "command_snippet": "WORKDIR /app",
+          "command_all": "WORKDIR /app",
+          "system_commands": [
+            "mkdir -p /app"
+          ],
+          "comment": "FROM docker.io/library/alpine:latest",
+          "raw_tags": [
+            "docker.io/library/alpine:latest"
+          ],
+          "inst_set_time_bucket": "2025-04-07T13:00:00+02:00",
+          "inst_set_time_index": 1,
+          "inst_set_time_reverse_index": 1
+        }
+      ]
+    },
+    {
+      "is_top_image": false,
+      "id": "sha256:8d591b0b7dea080ea3be9e12ae563eebf9869168ffced1cb25b2470a3d9fe15e",
+      "full_name": "docker.io/library/alpine:latest",
+      "repo_name": "docker.io/library/alpine",
+      "version_tag": "latest",
+      "raw_tags": [
+        "docker.io/library/alpine:latest"
+      ],
+      "create_time": "2025-04-07T11:09:50Z",
+      "new_size": 0,
+      "new_size_human": "0 B",
+      "base_image_id": "sha256:<missing>",
+      "instructions": [
+        {
+          "type": "ARG",
+          "time": "2025-04-07T11:09:50Z",
+          "is_last_instruction": true,
+          "is_nop": true,
+          "local_image_exists": true,
+          "layer_index": 0,
+          "size": 0,
+          "params": "TARGETPLATFORM",
+          "command_snippet": "ARG TARGETPLATFORM",
+          "command_all": "ARG TARGETPLATFORM",
+          "raw_tags": [
+            "docker.io/library/alpine:latest"
+          ],
+          "inst_set_time_bucket": "2025-04-07T13:00:00+02:00",
+          "inst_set_time_index": 1,
+          "inst_set_time_reverse_index": 1
+        }
+      ]
+    },
+    {
+      "is_top_image": false,
+      "id": "sha256:<missing>",
+      "full_name": "registry.gitlab.com/fa_rfro_mwrong/glabu:f88e1e1-amd64",
+      "repo_name": "registry.gitlab.com/fa_rfro_mwrong/glabu",
+      "version_tag": "f88e1e1-amd64",
+      "raw_tags": [
+        "registry.gitlab.com/fa_rfro_mwrong/glabu:f88e1e1-amd64",
+        "localhost/keenzien/glabu:f88e1e1-amd64",
+        "docker.io/keenzien/glabu:f88e1e1-amd64"
+      ],
+      "create_time": "2025-04-07T16:29:09Z",
+      "new_size": 6484480,
+      "new_size_human": "6.5 MB",
+      "base_image_id": "sha256:8d591b0b7dea080ea3be9e12ae563eebf9869168ffced1cb25b2470a3d9fe15e",
+      "instructions": [
+        {
+          "type": "COPY",
+          "time": "2025-04-07T16:29:09Z",
+          "is_last_instruction": true,
+          "is_nop": true,
+          "local_image_exists": true,
+          "layer_index": 0,
+          "size": 6484480,
+          "size_human": "6.5 MB",
+          "params": "file:6438756047a8e0297c7c99d95ae4838a90c1647a5b32e97fd1117081d1334f2f in /app/prog",
+          "command_snippet": "COPY file:6438756047a8e0297c7c99d95ae4838a90...",
+          "command_all": "COPY file:6438756047a8e0297c7c99d95ae4838a90c1647a5b32e97fd1117081d1334f2f /app/prog",
+          "raw_tags": [
+            "registry.gitlab.com/fa_rfro_mwrong/glabu:f88e1e1-amd64",
+            "localhost/keenzien/glabu:f88e1e1-amd64",
+            "docker.io/keenzien/glabu:f88e1e1-amd64"
+          ],
+          "target": "/app/prog",
+          "source_type": "file",
+          "inst_set_time_bucket": "2025-04-07T18:15:00+02:00",
+          "inst_set_time_index": 2,
+          "inst_set_time_reverse_index": 0
+        }
+      ]
+    },
+    {
+      "is_top_image": true,
+      "id": "sha256:1a5b5ebb08f00898e28729efa3e55f4039bc66119b64bb74b146cec332fd28df",
+      "full_name": "registry.gitlab.com/fa_rfro_mwrong/glabu:f88e1e1-amd64",
+      "repo_name": "registry.gitlab.com/fa_rfro_mwrong/glabu",
+      "version_tag": "f88e1e1-amd64",
+      "raw_tags": [
+        "registry.gitlab.com/fa_rfro_mwrong/glabu:f88e1e1-amd64",
+        "localhost/keenzien/glabu:f88e1e1-amd64",
+        "docker.io/keenzien/glabu:f88e1e1-amd64"
+      ],
+      "create_time": "2025-04-07T16:29:09Z",
+      "new_size": 0,
+      "new_size_human": "0 B",
+      "base_image_id": "sha256:<missing>",
+      "instructions": [
+        {
+          "type": "CMD",
+          "time": "2025-04-07T16:29:09Z",
+          "is_last_instruction": true,
+          "is_nop": true,
+          "is_exec_form": true,
+          "local_image_exists": true,
+          "layer_index": 0,
+          "size": 0,
+          "params": "[\"/app/prog\"]\n",
+          "command_snippet": "CMD [\"/app/prog\"]\n",
+          "command_all": "CMD [\"/app/prog\"]\n",
+          "raw_tags": [
+            "registry.gitlab.com/fa_rfro_mwrong/glabu:f88e1e1-amd64",
+            "localhost/keenzien/glabu:f88e1e1-amd64",
+            "docker.io/keenzien/glabu:f88e1e1-amd64"
+          ],
+          "inst_set_time_bucket": "2025-04-07T18:15:00+02:00",
+          "inst_set_time_index": 2,
+          "inst_set_time_reverse_index": 0
+        }
+      ]
+    }
+  ],
+  "image_created": false,
+  "image_build_engine": ""
+}
