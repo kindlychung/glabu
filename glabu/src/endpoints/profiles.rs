@@ -67,5 +67,5 @@ pub async fn group_by_name(group_name: &str) -> Result<Group, Box<dyn std::error
 
 /// Get group name by id
 pub async fn group_by_id(id: u64) -> Result<Group, Box<dyn Error>> {
-	group_by_name(id.to_string().as_str()).await
+    group_by_name(id.to_string().as_str()).await
 }

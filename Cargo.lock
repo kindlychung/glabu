@@ -1013,6 +1013,11 @@ dependencies = [
 [[package]]
 name = "package_release"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "osarch 0.2.0 (git+https://gitlab.com/puterize/osarch.git?rev=eabcdde754c02b2b8d7d1665d96c5169f971a2fc)",
+ "xshell",
+]
 
 [[package]]
 name = "parking_lot"

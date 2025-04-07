@@ -76,7 +76,7 @@ impl ProjectCreate {
         };
         eprintln!("namespace: {}", &namespace);
         let full_name = format!("{}/{}", namespace, self.name);
-		eprintln!("checking if project already exists: {}", &full_name);
+        eprintln!("checking if project already exists: {}", &full_name);
         let mut proj = match project_get(&full_name).await {
             Ok(res) => {
                 eprintln!("Project already exists: {}", &full_name);
@@ -89,7 +89,7 @@ impl ProjectCreate {
         };
         if proj.is_none() {
             let payload: ProjectCreatePayload = self.clone().into();
-			eprintln!("payload: {:?}", &payload);
+            eprintln!("payload: {:?}", &payload);
             let payload_str = serde_json::to_string(&payload).unwrap();
             eprintln!("payload: {}", &payload_str[0..30]);
             let response = httpclient()
@@ -134,7 +134,7 @@ pub async fn project_get(name: &str) -> Result<Project, Box<dyn std::error::Erro
         .send()
         .await?;
     let status = response.status();
-	eprintln!("status of getting project {}: {}", name, status);
+    eprintln!("status of getting project {}: {}", name, status);
     if status == 404 {
         return Err("NotFound".into());
     }
