@@ -1,5 +1,5 @@
 # (1) Base stage with dependencies
-FROM --platform=$BUILDPLATFORM rust:alpine AS chef
+FROM --platform=$BUILDPLATFORM public.ecr.aws/docker/library/rust:alpine AS chef
 WORKDIR /app
 RUN apk add --no-cache musl-dev openssl-dev openssl-libs-static pkgconfig zig
 RUN cargo install --locked cargo-zigbuild cargo-chef
@@ -32,7 +32,10 @@ RUN cargo zigbuild -r --target x86_64-unknown-linux-musl --target aarch64-unknow
 
 # (6) Runtime stage (unchanged)
 ARG TARGETPLATFORM
-FROM --platform=${TARGETPLATFORM} alpine:latest AS runtime
+FROM --platform=${TARGETPLATFORM} public.ecr.aws/docker/library/alpine:latest AS runtime
 WORKDIR /app
-COPY --from=builder /app/${TARGETPLATFORM} /app/prog
-CMD "/app/prog"
+COPY /app/linux/arm64 /app/arm64
+COPY /app/linux/amd64 /app/amd64
+# one of the 2 binaries above will be overwritten by the one below, that's ok
+COPY --from=builder /app/${TARGETPLATFORM} /app/${TARGETPLATFORM}
+CMD "/app/${TARGETPLATFORM}"
