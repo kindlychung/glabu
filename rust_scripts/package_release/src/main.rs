@@ -3,9 +3,9 @@ use std::path::PathBuf;
 use anyhow::{Context, Result};
 use xshell::{Shell, cmd};
 
-pub fn compress_and_upload() -> Result<()> {
+pub fn build_compress_and_upload() -> Result<()> {
     let sh = Shell::new()?;
-    let archs = &["amd64", "arm64"];
+    let archs = &["aarch64", "x86_64"];
     // Get git commit hash
     let commit_hash = cmd!(sh, "git rev-parse --short HEAD")
         .read()
@@ -14,8 +14,18 @@ pub fn compress_and_upload() -> Result<()> {
     // find out which binary to use for glabu to upload itself
     let mut binary_for_current_arch: Option<PathBuf> = None;
     for arch in archs {
-        let binary = format!("glabu-{}", arch);
-        let binary_path = PathBuf::from("./target").join(&binary);
+		let target_triple = format!("{}-unknown-linux-musl", arch);
+		// Build the binary for the current architecture
+		println!("Building the binary for {arch}...");
+		cmd!(
+			sh,
+			"cargo zigbuild --release --target {target_triple} --package glabu"
+		)
+		.run()
+		.context(format!("Failed to build binary for {}", arch))?;
+
+		// Compress the binary with UPX
+		let binary_path = PathBuf::from(format!("./target/{arch}-unknown-linux-musl/release/glabu"));
         // Compress the binary with UPX
         println!("Compressing the binary");
         cmd!(sh, "upx {binary_path}")
@@ -24,7 +34,6 @@ pub fn compress_and_upload() -> Result<()> {
             .map_or_else(|_| Ok::<(), anyhow::Error>(()), |_| Ok(()))?;
 
         let osarch_regex = osarch::current_arch();
-        dbg!(&osarch_regex);
         if osarch_regex.is_match(arch) {
             // it's ok to move binary_path out of the loop, since it's not used after this
             binary_for_current_arch = Some(binary_path);
@@ -78,7 +87,7 @@ If you want to install glabu globally, run the following command:
 
 fn main() -> Result<()> {
     // Build and push images
-    compress_and_upload().context("Failed to build and push images")?;
+    build_compress_and_upload().context("Failed to build and push images")?;
     println!("All binaries uploaded as packages successfully.");
     Ok(())
 }
