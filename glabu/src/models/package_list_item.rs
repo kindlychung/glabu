@@ -22,7 +22,7 @@ pub struct PackageFileInfo {
     pub file_md5: Option<String>,
     pub file_sha1: Option<String>,
     pub file_sha256: Option<String>,
-    // this is not present in the response
+    // these are not present in the response, but are needed for later processing
     pub version: Option<String>,
     pub name: Option<String>,
 }
