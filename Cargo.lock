@@ -249,7 +249,7 @@ name = "container_build"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "osarch 0.2.0 (git+https://gitlab.com/puterize/osarch.git?rev=eabcdde754c02b2b8d7d1665d96c5169f971a2fc)",
+ "osarch 0.2.0 (git+https://gitlab.com/puterize/osarch.git?rev=237fb78b2fce45d3b898701ebf7e464fc29b1a51)",
  "xshell",
 ]
 
@@ -1005,7 +1005,7 @@ dependencies = [
 [[package]]
 name = "osarch"
 version = "0.2.0"
-source = "git+https://gitlab.com/puterize/osarch.git?rev=eabcdde754c02b2b8d7d1665d96c5169f971a2fc#eabcdde754c02b2b8d7d1665d96c5169f971a2fc"
+source = "git+https://gitlab.com/puterize/osarch.git?rev=237fb78b2fce45d3b898701ebf7e464fc29b1a51#237fb78b2fce45d3b898701ebf7e464fc29b1a51"
 dependencies = [
  "regex",
 ]
@@ -1015,7 +1015,7 @@ name = "package_release"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "osarch 0.2.0 (git+https://gitlab.com/puterize/osarch.git?rev=eabcdde754c02b2b8d7d1665d96c5169f971a2fc)",
+ "osarch 0.2.0 (git+https://gitlab.com/puterize/osarch.git?rev=237fb78b2fce45d3b898701ebf7e464fc29b1a51)",
  "xshell",
 ]
 
