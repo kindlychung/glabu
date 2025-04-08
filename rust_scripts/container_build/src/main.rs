@@ -46,43 +46,44 @@ fn build_and_push_images() -> Result<()> {
             .run()
             .context(format!("Failed to push image for {}", arch))?;
 
-        // Create container to extract binary
-        let container_id = cmd!(sh, "podman create {tag}")
-            .read()
-            .context(format!("Failed to create container for {}", arch))?;
-
-        // Copy binary from container
-        sh.create_dir("./target")?;
-        cmd!(
-            sh,
-            "podman cp {container_id}:/app/prog ./target/glabu-{arch}"
-        )
-        .run()
-        .context(format!("Failed to copy binary for {}", arch))?;
-
-        // Install binary locally if architecture matches
+        // Copy binaries to target folder if architecture matches
+		// Note that since we can only run the docker image for the current architecture,
+		// but we need to copy the binaries for both architectures, so we made sure that
+		// the docker image for arm64 also contains the amd64 binary
+		// and vice versa. This way we can copy both binaries from the same image.
+		// This means we can run the arm64 image and copy the amd64 binary from it
+		// and vice versa.
         if osarch::current_os_arch().is_match(arch) {
-            println!("Installing the binary locally");
-            let cwd = sh.current_dir();
-            let binary_name = cwd.file_name().and_then(|n| n.to_str()).unwrap_or("glabu");
+            // Create container to extract binary
+            let container_id = cmd!(sh, "podman create {tag}")
+                .read()
+                .context(format!("Failed to create container for {}", arch))?;
 
+            // Copy binary from container
+            sh.create_dir("./target")?;
             cmd!(
                 sh,
-                "podman cp {container_id}:/app/prog /usr/local/bin/{binary_name}"
+                "podman cp {container_id}:/app/linux/arm64 ./target/glabu-arm64"
             )
             .run()
-            .context("Failed to install binary locally")?;
+            .context("Failed to copy binary glabu-arm64")?;
+            cmd!(
+                sh,
+                "podman cp {container_id}:/app/linux/amd64 ./target/glabu-amd64"
+            )
+            .run()
+            .context("Failed to copy binary glabu-amd64")?;
+
+            // Clean up container
+            cmd!(sh, "podman rm -v {container_id}")
+                .run()
+                .context(format!("Failed to remove container {}", container_id))?;
+
         }
-
-        // Clean up container
-        cmd!(sh, "podman rm -v {container_id}")
-            .run()
-            .context(format!("Failed to remove container for {}", arch))?;
-
-        // Add to manifest
-        cmd!(sh, "podman manifest add {tag_root} {tag}")
-            .run()
-            .context(format!("Failed to add {} to manifest", arch))?;
+		// Add to manifest
+		cmd!(sh, "podman manifest add {tag_root} {tag}")
+			.run()
+			.context(format!("Failed to add {} to manifest", arch))?;
     }
 
     println!("Pushing manifest: {}", tag_root);
