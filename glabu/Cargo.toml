@@ -2,8 +2,10 @@
 name = "glabu"
 version = "0.1.0"
 edition = "2024"
-authors = ["Kaiyin <kindlychung@gmail.com>"]
+license = "MIT"
+authors = ["Kaiyin Zhong <kindlychung@gmail.com>"]
 description = "A CLI tool for interacting with gitlab api"
+repository = "https://gitlab.com/puterize/glabu"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
@@ -20,5 +22,11 @@ maplit = "1.0.2"
 either = { version = "1", features = ["serde"] }
 regex = "1.11.1"
 serde_yaml = "0.9.34"
+
+[package.metadata.generate-rpm]
+release = "1"
+assets = [
+    { source = "target/release/glabu", dest = "/usr/local/bin/glabu", mode = "755" },
+]
 
 
