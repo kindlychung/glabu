@@ -53,7 +53,7 @@ fn build_and_push_images() -> Result<()> {
 		// and vice versa. This way we can copy both binaries from the same image.
 		// This means we can run the arm64 image and copy the amd64 binary from it
 		// and vice versa.
-        if osarch::current_os_arch().is_match(arch) {
+        if osarch::current_arch().is_match(arch) {
             // Create container to extract binary
             let container_id = cmd!(sh, "podman create {tag}")
                 .read()
@@ -78,7 +78,19 @@ fn build_and_push_images() -> Result<()> {
             cmd!(sh, "podman rm -v {container_id}")
                 .run()
                 .context(format!("Failed to remove container {}", container_id))?;
+			let arch = cmd!(sh, "arch").read().context("Failed to get architecture")?;
+			println!(r####"
 
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+To install the glabu binary for {arch}:
+
+sudo install ./target/glabu_{arch} /usr/local/bin/glabu
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+
+			"####)
         }
 		// Add to manifest
 		cmd!(sh, "podman manifest add {tag_root} {tag}")
