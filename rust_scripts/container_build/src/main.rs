@@ -1,10 +1,10 @@
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 
 use anyhow::{Context, Result};
 use xshell::{Shell, cmd};
 
 static MESSAGES: OnceLock<Mutex<Vec<String>>> = OnceLock::new();
-pub fn messages() -> &'static Vec<String> {
+pub fn messages() -> &'static Mutex<Vec<String>> {
     MESSAGES.get_or_init(|| Mutex::new(Vec::new()))
 }
 
