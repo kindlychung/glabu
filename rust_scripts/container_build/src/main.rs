@@ -8,6 +8,9 @@ pub fn messages() -> &'static Mutex<Vec<String>> {
     MESSAGES.get_or_init(|| Mutex::new(Vec::new()))
 }
 
+/// Build and push multiarch docker images for glabu.
+/// First build the images for both architectures (amd64 and arm64),
+/// then add them to a manifest and push the manifest.
 fn build_and_push_images() -> Result<()> {
     let sh = Shell::new()?;
     let registry = "registry.gitlab.com/puterize/glabu";
@@ -53,48 +56,10 @@ fn build_and_push_images() -> Result<()> {
             .run()
             .context(format!("Failed to push image for {}", arch))?;
 
-        // Copy binaries to target folder if architecture matches
-        // Note that since we can only run the docker image for the current architecture,
-        // but we need to copy the binaries for both architectures, so we made sure that
-        // the docker image for arm64 also contains the amd64 binary
-        // and vice versa. This way we can copy both binaries from the same image.
-        // This means we can run the arm64 image and copy the amd64 binary from it
-        // and vice versa.
-        if osarch::current_arch().is_match(arch) {
-            // Create container to extract binary
-            let container_id = cmd!(sh, "podman create {tag}")
-                .read()
-                .context(format!("Failed to create container for {}", arch))?;
+        // copy_binaries_to_local(sh, arch)?;
 
-            // Copy binary from container
-            sh.create_dir("./target")?;
-            cmd!(sh, "podman cp {container_id}:/app/glabu_aarch64 ./target/")
-                .run()
-                .context("Failed to copy binary glabu_aarch64")?;
-            cmd!(sh, "podman cp {container_id}:/app/glabu_x86_64 ./target/")
-                .run()
-                .context("Failed to copy binary glabu_x86_64")?;
-
-            // Clean up container
-            cmd!(sh, "podman rm -v {container_id}")
-                .run()
-                .context(format!("Failed to remove container {}", container_id))?;
-            let arch = cmd!(sh, "arch")
-                .read()
-                .context("Failed to get architecture")?;
-
-            let msg = format!(
-                r####"
->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-To install the glabu binary for {arch}:
-
-sudo install ./target/glabu_{arch} /usr/local/bin/glabu
->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-			"####
-            );
-            messages().lock().unwrap().push(msg);
-        }
         // Add to manifest
+        println!("Adding image {} to manifest...", tag);
         cmd!(sh, "podman manifest add {tag_root} {tag}")
             .run()
             .context(format!("Failed to add {} to manifest", arch))?;
@@ -105,6 +70,48 @@ sudo install ./target/glabu_{arch} /usr/local/bin/glabu
         .run()
         .context("Failed to push manifest")?;
 
+    Ok(())
+}
+
+// Copy binaries to target folder if architecture matches
+// Note that since we can only run the docker image for the current architecture,
+// but we need to copy the binaries for both architectures, so we made sure that
+// the docker image for arm64 also contains the amd64 binary
+// and vice versa. This way we can copy both binaries from the same image.
+// This means we can run the arm64 image and copy the amd64 binary from it
+// and vice versa.
+#[allow(dead_code)]
+fn copy_binaries_to_local(tag: &str, arch: &str) -> Result<(), anyhow::Error> {
+    let sh = Shell::new()?;
+    if !osarch::current_arch().is_match(arch) {
+        return Ok(());
+    }
+    let container_id = cmd!(sh, "podman create {tag}")
+        .read()
+        .context(format!("Failed to create container for {}", arch))?;
+    sh.create_dir("./target")?;
+    cmd!(sh, "podman cp {container_id}:/app/glabu_aarch64 ./target/")
+        .run()
+        .context("Failed to copy binary glabu_aarch64")?;
+    cmd!(sh, "podman cp {container_id}:/app/glabu_x86_64 ./target/")
+        .run()
+        .context("Failed to copy binary glabu_x86_64")?;
+    cmd!(sh, "podman rm -v {container_id}")
+        .run()
+        .context(format!("Failed to remove container {}", container_id))?;
+    let arch = cmd!(sh, "arch")
+        .read()
+        .context("Failed to get architecture")?;
+    let msg = format!(
+        r####"
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+To install the glabu binary for {arch}:
+
+sudo install ./target/glabu_{arch} /usr/local/bin/glabu
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+			"####
+    );
+    messages().lock().unwrap().push(msg);
     Ok(())
 }
 
