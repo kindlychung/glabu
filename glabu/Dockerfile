@@ -35,7 +35,7 @@ FROM --platform=${TARGETPLATFORM} alpine:latest AS runtime
 ARG TARGETPLATFORM
 RUN echo "**** TARGETPLATFORM: ${TARGETPLATFORM} ****"
 WORKDIR /app
-COPY --from=builder /app/linux/arm64 /app/linux/arm64
-COPY --from=builder /app/linux/amd64 /app/linux/amd64
-ARG TARGETPLATFORM
-CMD "/app/${TARGETPLATFORM}"
+# change the name of the binary to match the output of the `arch` command
+COPY --from=builder /app/linux/arm64 /app/linux/aarch64
+COPY --from=builder /app/linux/amd64 /app/linux/x86_64
+CMD "/app/linux/$(uname -m)"
