@@ -48,7 +48,7 @@
 use super::projects::project_get;
 use super::setup::{gitlab_api_url, gitlab_token, httpclient};
 use crate::endpoints::PrintOutput;
-use crate::models::{PackageFileInfo, PackageInfo};
+use crate::models::{PackageFileInfo, PackageInfo, SortDirection};
 use regex::Regex;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
@@ -98,6 +98,118 @@ fn make_filter(pattern: Option<Regex>, filename: Option<String>) -> Box<dyn Pack
     } else {
         panic!("Either pattern or filename must be provided")
     }
+}
+
+/// Enum for sorting packages.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProjectPackageListOrderBy {
+	CreatedAt,
+	Name,
+	Version,
+	Type
+}
+
+/// Enum for package types.
+/// One of conan, maven, npm, pypi, composer, nuget, helm, terraform_module, or golang.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PackageType {
+    Conan,
+	Maven,
+	Npm,
+	Pypi,
+	Composer,
+	Nuget,
+	Helm,
+	TerraformModule,
+	Golang,
+}
+
+/// Enum for package status.
+/// One of default, hidden, processing, error, or pending_destruction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PackageStatus {
+Default,
+	Hidden,
+	Processing,
+	Error,
+	PendingDestruction
+}
+
+
+/// Struct for listing packages of a project.
+/// This struct holds the necessary information to list packages in a project.
+/// See https://docs.gitlab.com/api/packages/#list-packages
+pub struct ProjectPackageList {
+	id: impl ToString,
+	order_by: Option<ProjectPackageListOrderBy>,
+	sort: Option<SortDirection>,
+	package_name: Option<String>,
+	package_version: Option<String>,
+	include_versionless: Option<bool>,
+	status: Option<PackageStatus>,
+}
+
+impl ProjectPackageList {
+	/// Creates a new `ProjectPackageList` instance.
+	///
+	/// # Arguments
+	///
+	/// * `id` - The ID of the project.
+	///
+	/// # Returns
+	///
+	/// A `ProjectPackageList` instance.
+	pub fn new(id: impl ToString) -> Self {
+		Self {
+			id,
+			order_by: None,
+			sort: None,
+			package_name: None,
+			package_version: None,
+			include_versionless: None,
+			status: None,
+		}
+	}
+
+	/// Sets the order by field for the package list.
+	///
+	/// # Arguments
+	///
+	/// * `order_by` - The field to order by.
+	///
+	/// # Returns
+	///
+	/// The updated `ProjectPackageList` instance.
+	pub fn order_by(mut self, order_by: ProjectPackageListOrderBy) -> Self {
+		self.order_by = Some(order_by);
+		self
+	}
+
+	pub fn sort(mut self, sort: SortDirection) -> Self {
+		self.sort = Some(sort);
+		self
+	}
+
+	pub fn package_type(mut self, package_type: PackageType) -> Self {
+		self.package_name = Some(package_type);
+		self
+	}
+
+	pub fn package_name(mut self, name: &str) -> Self {
+		self.package_name = Some(name.to_string());
+		self
+	}
+	pub fn package_version(mut self, version: &str) -> Self {
+		self.package_version = Some(version.to_string());
+		self
+	}
+	pub fn include_versionless(mut self, include: bool) -> Self {
+		self.include_versionless = Some(include);
+		self
+	}
 }
 
 /// Info needed to list packages of a project.
