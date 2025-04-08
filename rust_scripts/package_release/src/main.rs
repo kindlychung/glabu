@@ -23,34 +23,35 @@ pub fn compress_and_upload() -> Result<()> {
             .context("Failed to compress binary with UPX")
             .map_or_else(|_| Ok::<(), anyhow::Error>(()), |_| Ok(()))?;
 
-		let osarch_regex = osarch::current_arch();
-		dbg!(&osarch_regex);
+        let osarch_regex = osarch::current_arch();
+        dbg!(&osarch_regex);
         if osarch_regex.is_match(arch) {
             // it's ok to move binary_path out of the loop, since it's not used after this
             binary_for_current_arch = Some(binary_path);
             break;
         } else {
-			eprintln!("Binary for {} is not compatible with the current architecture", arch);
-		}
+            eprintln!(
+                "Binary for {} is not compatible with the current architecture",
+                arch
+            );
+        }
     }
 
-	if binary_for_current_arch.is_none() {
-		return Err(anyhow::anyhow!("No binary found for the current architecture"));
-	}
-	let binary_for_current_arch = binary_for_current_arch.unwrap();
+    if binary_for_current_arch.is_none() {
+        return Err(anyhow::anyhow!(
+            "No binary found for the current architecture"
+        ));
+    }
+    let binary_for_current_arch = binary_for_current_arch.unwrap();
 
     for arch in archs {
         let binary = format!("glabu-{}", arch);
         let binary_path = PathBuf::from("./target").join(&binary);
         // Upload to GitLab
-        let file_name = format!(
-            "{}-{}",
-            binary_path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("glabu"),
-            arch
-        );
+        let file_name = binary_path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("glabu");
         println!("Uploading the binary {} to the gitlab...", &file_name);
         cmd!(
             sh,
@@ -62,10 +63,10 @@ pub fn compress_and_upload() -> Result<()> {
 
     // Print installation instructions
     println!(
-        r###"""
-	>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	If you want to install glabu globally, run the following command:
-	"""###
+        r###"
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+If you want to install glabu globally, run the following command:
+	"###
     );
     println!(
         "sudo install {} /usr/local/bin/glabu",
