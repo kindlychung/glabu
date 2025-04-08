@@ -33,6 +33,7 @@ RUN cargo zigbuild -r --target x86_64-unknown-linux-musl --target aarch64-unknow
 # (6) Runtime stage (unchanged)
 ARG TARGETPLATFORM
 FROM --platform=${TARGETPLATFORM} alpine:latest AS runtime
+RUN echo "**** TARGETPLATFORM: ${TARGETPLATFORM} ****"
 WORKDIR /app
 COPY --from=builder /app/linux/arm64 /app/linux/arm64
 COPY --from=builder /app/linux/amd64 /app/linux/amd64
