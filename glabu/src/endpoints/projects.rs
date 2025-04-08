@@ -173,7 +173,7 @@ impl ProjectDelete {
             .send()
             .await?;
         let status = response.status();
-		eprintln!("status of deleting project {}: {}", &self.full_name, status);
+        eprintln!("status of deleting project {}: {}", &self.full_name, status);
         if let Err(e) = response.error_for_status_ref() {
             return Err(e.into());
         }
