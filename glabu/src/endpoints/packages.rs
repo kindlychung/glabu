@@ -45,15 +45,14 @@
 //! Note the layout above is just conceptual, the actual response from the API is different.
 //! See the [GitLab API documentation](https://docs.gitlab.com/user/packages/generic_packages) for more details.
 
-use super::projects::project_get;
 use super::setup::{gitlab_api_url, gitlab_token, httpclient};
 use crate::endpoints::PrintOutput;
 use crate::models::{PackageFileInfo, PackageInfo, SortDirection};
 use regex::Regex;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use serde_yaml;
 use std::borrow::Borrow;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -104,10 +103,10 @@ fn make_filter(pattern: Option<Regex>, filename: Option<String>) -> Box<dyn Pack
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ProjectPackageListOrderBy {
-	CreatedAt,
-	Name,
-	Version,
-	Type
+    CreatedAt,
+    Name,
+    Version,
+    Type,
 }
 
 /// Enum for package types.
@@ -116,14 +115,14 @@ pub enum ProjectPackageListOrderBy {
 #[serde(rename_all = "snake_case")]
 pub enum PackageType {
     Conan,
-	Maven,
-	Npm,
-	Pypi,
-	Composer,
-	Nuget,
-	Helm,
-	TerraformModule,
-	Golang,
+    Maven,
+    Npm,
+    Pypi,
+    Composer,
+    Nuget,
+    Helm,
+    TerraformModule,
+    Golang,
 }
 
 /// Enum for package status.
@@ -131,258 +130,250 @@ pub enum PackageType {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PackageStatus {
-Default,
-	Hidden,
-	Processing,
-	Error,
-	PendingDestruction
+    Default,
+    Hidden,
+    Processing,
+    Error,
+    PendingDestruction,
 }
-
 
 /// Struct for listing packages of a project.
 /// This struct holds the necessary information to list packages in a project.
 /// See https://docs.gitlab.com/api/packages/#list-packages
-pub struct ProjectPackageList {
-	id: impl ToString,
-	order_by: Option<ProjectPackageListOrderBy>,
-	sort: Option<SortDirection>,
-	package_name: Option<String>,
-	package_version: Option<String>,
-	include_versionless: Option<bool>,
-	status: Option<PackageStatus>,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProjectPackageListOp {
+    /// ID or URL-encoded path of the project.
+    id: String,
+    /// The field to use as order. One of created_at (default), name, version, or type.
+    order_by: Option<ProjectPackageListOrderBy>,
+    /// The direction of the order, either asc (default) for ascending order or desc for descending order.
+    sort: Option<SortDirection>,
+    /// Filter the returned packages by type. One of conan, maven, npm, pypi, composer, nuget, helm, terraform_module, or golang.
+    package_type: Option<PackageType>,
+    /// Filter the project packages with a fuzzy search by name.
+    package_name: Option<String>,
+    /// Filter the project packages by version. If used in combination with include_versionless, then no versionless packages are returned. Introduced in GitLab 16.6.
+    package_version: Option<String>,
+    /// When set to true, versionless packages are included in the response.
+    include_versionless: Option<bool>,
+    /// Filter the returned packages by status. One of default, hidden, processing, error, or pending_destruction.
+    status: Option<PackageStatus>,
+    /// Page number (default: 1).
+    per_page: Option<u64>,
+    /// Number of items per page (default: 20, max 1000).
+    page: Option<u64>,
 }
 
-impl ProjectPackageList {
-	/// Creates a new `ProjectPackageList` instance.
-	///
-	/// # Arguments
-	///
-	/// * `id` - The ID of the project.
-	///
-	/// # Returns
-	///
-	/// A `ProjectPackageList` instance.
-	pub fn new(id: impl ToString) -> Self {
-		Self {
-			id,
-			order_by: None,
-			sort: None,
-			package_name: None,
-			package_version: None,
-			include_versionless: None,
-			status: None,
-		}
-	}
-
-	/// Sets the order by field for the package list.
-	///
-	/// # Arguments
-	///
-	/// * `order_by` - The field to order by.
-	///
-	/// # Returns
-	///
-	/// The updated `ProjectPackageList` instance.
-	pub fn order_by(mut self, order_by: ProjectPackageListOrderBy) -> Self {
-		self.order_by = Some(order_by);
-		self
-	}
-
-	pub fn sort(mut self, sort: SortDirection) -> Self {
-		self.sort = Some(sort);
-		self
-	}
-
-	pub fn package_type(mut self, package_type: PackageType) -> Self {
-		self.package_name = Some(package_type);
-		self
-	}
-
-	pub fn package_name(mut self, name: &str) -> Self {
-		self.package_name = Some(name.to_string());
-		self
-	}
-	pub fn package_version(mut self, version: &str) -> Self {
-		self.package_version = Some(version.to_string());
-		self
-	}
-	pub fn include_versionless(mut self, include: bool) -> Self {
-		self.include_versionless = Some(include);
-		self
-	}
-}
-
-/// Info needed to list packages of a project.
-#[derive(Debug, Clone)]
-pub struct PackageAction {
-    pub project_id: u64,
-    pub package_name: String,
-}
-
-impl PackageAction {
-    /// Creates a new `PackageAction` instance from a project path.
+impl ProjectPackageListOp {
+    /// Creates a new `ProjectPackageList` instance.
     ///
     /// # Arguments
     ///
-    /// * `project_path` - The path to the project.
+    /// * `id` - The ID of the project.
     ///
     /// # Returns
     ///
-    /// A `Result` containing the `PackageAction` instance or an error.
-    pub async fn with_project_path(project_path: &str) -> Result<Self, Box<dyn std::error::Error>> {
-        let project_id = project_get(project_path).await?.id;
-        Ok(Self {
-            project_id,
-            package_name: "".to_string(),
-        })
-    }
-
-    /// Creates a new `PackageAction` instance from a project ID.
-    ///
-    /// # Arguments
-    ///
-    /// * `project_id` - The ID of the project.
-    ///
-    /// # Returns
-    ///
-    /// A `PackageAction` instance.
-    pub async fn with_project_id(project_id: u64) -> Self {
+    /// A `ProjectPackageList` instance.
+    pub fn new(id: impl ToString) -> Self {
         Self {
-            project_id,
-            package_name: "".to_string(),
+            id: id.to_string(),
+            order_by: None,
+            sort: None,
+            package_type: None,
+            package_name: None,
+            package_version: None,
+            include_versionless: None,
+            status: None,
+            per_page: Some(100),
+            page: None,
         }
     }
 
-    /// Sets the package name for the `PackageAction` instance.
+    /// Sets the order by field for the package list.
     ///
     /// # Arguments
     ///
-    /// * `name` - The name of the package.
+    /// * `order_by` - The field to order by.
     ///
     /// # Returns
     ///
-    /// The `PackageAction` instance with the updated package name.
-    pub fn package_name(mut self, name: &str) -> Self {
-        self.package_name = name.to_string();
+    /// The updated `ProjectPackageList` instance.
+    pub fn order_by(mut self, order_by: Option<ProjectPackageListOrderBy>) -> Self {
+		self.order_by = order_by;
         self
     }
 
-    /// Lists packages of a project.
-    ///
-    /// # Arguments
-    ///
-    /// * `latest` - A flag indicating whether to list only the latest package.
-    ///
-    /// # Returns
-    ///
-    /// A `Result` containing a vector of `PackageListItem` or an error.
-    pub async fn run(self, latest: bool) -> Result<Vec<PackageInfo>, Box<dyn std::error::Error>> {
-        let mut url_path = format!(
-            "/projects/{}/packages?package_name={}",
-            self.project_id, self.package_name
-        );
-        if latest {
-            url_path.push_str("&order_by=created_at&sort=desc&per_page=1");
-        }
-        let response = httpclient()
-            .get(gitlab_api_url(&url_path, None))
-            .header("Private-Token", gitlab_token())
-            .send()
-            .await?;
-        let status = response.status();
-        if status == 404 {
-            return Err("PackageNotFound".into());
-        }
-        let content = response.text().await?;
-        let packages: Vec<PackageInfo> = serde_json::from_str(&content)?;
+    pub fn sort(mut self, sort: Option<SortDirection>) -> Self {
+		self.sort = sort;
+        self
+    }
+
+    pub fn package_type(mut self, package_type: Option<PackageType>) -> Self {
+		self.package_type = package_type;
+        self
+    }
+
+    pub fn package_name(mut self, package_name: Option<String>) -> Self {
+		self.package_name = package_name;
+        self
+    }
+    pub fn package_version(mut self, package_version: Option<String>) -> Self {
+		self.package_version = package_version;
+        self
+    }
+    pub fn include_versionless(mut self, include_versionless: Option<bool>) -> Self {
+		self.include_versionless = include_versionless;
+        self
+    }
+    pub fn status(mut self, status: Option<PackageStatus>) -> Self {
+		self.status = status;
+        self
+    }
+    pub fn per_page(mut self, per_page: Option<u64>) -> Self {
+		self.per_page = per_page;
+        self
+    }
+    pub fn page(mut self, page: Option<u64>) -> Self {
+		self.page = page;
+        self
+    }
+
+    pub fn latest(&mut self)  {
+        self.sort = Some(SortDirection::Desc);
+        self.order_by = Some(ProjectPackageListOrderBy::CreatedAt);
+        self.per_page = Some(1);
+        self.page = Some(1);
+    }
+
+    pub async fn list(&self) -> Result<Vec<PackageInfo>, Box<dyn std::error::Error>> {
+        let self_json = serde_json::to_string(&self)?;
+        let self_map: HashMap<String, Option<String>> = serde_json::from_str(&self_json)?;
+        let query: Vec<(&str, &str)> = self_map
+            .iter()
+            .filter_map(|(key, value)| {
+                value.as_ref().map(|value| {
+                    // eprintln!("key: {}, value: {}", key, value);
+                    (key.as_str(), value.as_str())
+                })
+            })
+            .collect();
+        let json = packages_get_helper(self.id.clone(), "", query).await?;
+        let packages = serde_json::from_slice::<Vec<PackageInfo>>(&json)?;
         Ok(packages)
     }
 
-    /// Lists package files for a specific version.
-    ///
-    /// # Arguments
-    ///
-    /// * `version` - The version of the package.
-    ///
-    /// # Returns
-    ///
-    /// A `Result` containing a vector of `PackageFilesItem` or an error.
+    pub async fn first(&self) -> Result<PackageInfo, Box<dyn std::error::Error>> {
+        let mut packages = self.list().await?;
+        let res = packages.pop().ok_or::<Box<dyn std::error::Error>>("PackageNotFound".into())?;
+        Ok(res)
+    }
+
+    pub async fn package_by_id(
+        &self,
+        package_id: u64,
+    ) -> Result<PackageInfo, Box<dyn std::error::Error>> {
+        let path = format!("/{}", package_id);
+        let json = packages_get_helper(self.id.clone(), &path, vec![("", "")]).await?;
+        let package = serde_json::from_slice::<PackageInfo>(&json)?;
+        Ok(package)
+    }
+
+    pub async fn package_files(
+        &self,
+        package: &PackageInfo,
+    ) -> Result<Vec<PackageFileInfo>, Box<dyn std::error::Error>> {
+        let path = format!("/{}/package_files", &package.id);
+        let json = packages_get_helper(self.id.clone(), &path, vec![("", "")]).await?;
+        let package_files = serde_json::from_slice::<Vec<PackageFileInfo>>(&json)?;
+        let package_files = package_files
+            .into_iter()
+            .map(|mut package_file| {
+                package_file.version = Some(package.version.clone());
+                package_file.name = Some(package.name.clone());
+                package_file
+            })
+            .collect();
+        Ok(package_files)
+    }
+
     pub async fn package_files_by_version(
-        self,
+        &mut self,
         version: &str,
     ) -> Result<Vec<PackageFileInfo>, Box<dyn std::error::Error>> {
-        let project_id = self.project_id;
-        let package_files = ListPackageFiles::with_project_id(project_id)
-            .await
-            .package_version(version)
-            .run("", "")
-            .await?
-            .into_iter()
-            .map(|mut x| {
-                x.version = Some(version.to_string());
-                x.name = Some(self.package_name.clone());
-                x
-            })
-            .collect();
+        self.package_version = Some(version.to_string());
+        let package = self.first().await?;
+        let package_files = self.package_files(&package).await?;
         Ok(package_files)
     }
 
-    /// Lists package files for the latest package.
-    ///
-    /// # Returns
-    ///
-    /// A `Result` containing a vector of `PackageFilesItem` or an error.
-    pub async fn latest_package_files(
-        self,
+    pub async fn package_files_latest_version(
+        &mut self,
     ) -> Result<Vec<PackageFileInfo>, Box<dyn std::error::Error>> {
-        let project_id = self.project_id;
-        let latest_package = self.clone().run(true).await?;
-        // eprintln!("latest_package: {:?}", latest_package);
-        let version = latest_package.first().unwrap().version.clone();
-        let latest_package_id = latest_package.first().unwrap().id;
-        // eprintln!("latest_package_id: {}", latest_package_id);
-        let package_files = package_files_get(project_id, latest_package_id, "", "")
-            .await?
-            .into_iter()
-            .map(|mut x| {
-                x.version = Some(version.clone());
-                x.name = Some(self.package_name.clone());
-                x
-            })
-            .collect();
+        self.latest();
+        let package = self.first().await?;
+        let package_files = self.package_files(&package).await?;
         Ok(package_files)
     }
+}
 
-    /// Downloads files that match a regex pattern from the latest package or a specific version.
-    ///
-    /// # Arguments
-    ///
-    /// * `pattern` - An optional regex pattern for filtering package files.
-    /// * `filename` - An optional exact filename for filtering package files.
-    /// * `version` - An optional package version to download files from.
-    /// * `latest` - A flag indicating whether to download files from the latest package.
-    ///
-    /// # Returns
-    ///
-    /// A `Result` indicating success or an error.
+/// Info need for uploading/downloading package files.
+#[derive(Debug, Clone)]
+pub struct GenericPackageOp {
+    ///  Your project ID or URL-encoded path
+    pub project_id: String,
+    /// Name of your package
+    pub package_name: String,
+    /// Version of your package, if not provided, the latest version will be used
+    pub package_version: Option<String>,
+    /// The file name
+    pub file_name: String,
+}
+
+impl GenericPackageOp {
+    pub fn new(project_id: impl ToString, package_name: &str, file_name: &str) -> Self {
+        Self {
+            project_id: project_id.to_string(),
+            package_name: package_name.to_string(),
+            file_name: file_name.to_string(),
+            package_version: None,
+        }
+    }
+
+	pub fn package_name(mut self, package_name: &str) -> Self {
+		self.package_name = package_name.to_string();
+		self
+	}
+
+	pub fn package_version(mut self, pv: Option<String>) -> Self {
+		self.package_version = pv;
+		self
+	}
+	pub fn file_name(mut self, file_name: &str) -> Self {
+		self.file_name = file_name.to_string();
+		self
+	}
+
+
     pub async fn download_files(
         self,
         output_dir: PathBuf,
         pattern: Option<String>,
         filename: Option<String>,
-        version: Option<String>,
-        latest: Option<bool>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let pattern = pattern.map(|x| Regex::new(&x).unwrap());
         let filter = make_filter(pattern, filename);
-        let package_files = if Some(true) == latest {
-            self.clone().latest_package_files().await?
-        } else if let Some(version) = version {
-            eprintln!("download package version: {}", version);
-            self.clone().package_files_by_version(&version).await?
+        let mut project_packages_list_op =
+            ProjectPackageListOp::new(&self.project_id).package_name(Some(self.package_name.clone()));
+        let package_files = if let Some(version) = self.package_version.as_ref() {
+            project_packages_list_op
+                .package_files_by_version(version)
+                .await?
         } else {
-            return Err("Please provide either package version or latest flag".into());
+            project_packages_list_op
+                .package_files_latest_version()
+                .await?
         };
+
         let mut outputs = vec![];
         for package_file in &package_files {
             if !filter.filter(package_file) {
@@ -391,9 +382,9 @@ impl PackageAction {
             let package_file_path = format!(
                 "/projects/{}/packages/generic/{}/{}/{}",
                 self.project_id,
-                package_file.name.clone().unwrap(),
-                package_file.version.clone().unwrap(),
-                package_file.file_name
+                package_file.name.as_ref().unwrap(),
+                package_file.version.as_ref().unwrap(),
+                package_file.file_name.as_str()
             );
             let url = gitlab_api_url(&package_file_path, None);
             let output_file = if output_dir.is_dir() {
@@ -406,11 +397,12 @@ impl PackageAction {
             let _ = download_file(&url, &output_file).await?;
             outputs.push(output_str);
         }
-        let msg = serde_yaml::to_value(PrintOutput {
+        let msg = PrintOutput {
             status: "ok".to_string(),
             output: outputs,
-        })?;
-        println!("{}", serde_yaml::to_string(&msg)?);
+        };
+        let msg = serde_json::to_string_pretty(&msg)?;
+        println!("{}", msg);
         Ok(())
     }
 
@@ -486,88 +478,58 @@ where
     Ok(())
 }
 
-/// Info needed to list files of a package.
-///
-/// This struct holds the necessary information to list files of a specific package in a project.
-pub struct ListPackageFiles {
-    pub project_id: u64,
-    pub package_name: String,
-    pub package_version: String,
-}
-
-impl ListPackageFiles {
-    /// Creates a new instance of `ListPackageFiles` for a given project path.
-    ///
-    /// # Arguments
-    ///
-    /// * `project_path` - The path to the project.
-    ///
-    /// # Returns
-    ///
-    /// A `Result` containing the `ListPackageFiles` instance or an error.
-    pub async fn with_project_path(project_path: &str) -> Result<Self, Box<dyn std::error::Error>> {
-        let project_id = project_get(project_path).await?.id;
-        Ok(Self {
-            project_id,
-            package_name: "".to_string(),
-            package_version: "".to_string(),
-        })
-    }
-
-    /// Creates a new instance of `ListPackageFiles` for a given project ID.
-    ///
-    /// # Arguments
-    ///
-    /// * `project_id` - The ID of the project.
-    ///
-    /// # Returns
-    ///
-    /// A `ListPackageFiles` instance.
-    pub async fn with_project_id(project_id: u64) -> Self {
-        Self {
-            project_id,
-            package_name: "".to_string(),
-            package_version: "".to_string(),
-        }
-    }
-
-    pub fn package_name(mut self, name: &str) -> Self {
-        self.package_name = name.to_string();
-        self
-    }
-
-    pub fn package_version(mut self, version: &str) -> Self {
-        self.package_version = version.to_string();
-        self
-    }
-
-    /// Lists files of a package.
-    ///
-    /// # Returns
-    /// A `Result` containing a vector of `PackageFilesItem` or an error.
-    pub async fn run(
-        &self,
-        order_by: &str,
-        sort: &str,
-    ) -> Result<Vec<PackageFileInfo>, Box<dyn std::error::Error>> {
-        let packages = packages_get(
-            self.project_id,
-            &[
-                ("package_name", self.package_name.as_str()),
-                ("package_version", self.package_version.as_str()),
-            ],
-        )
+/// Helper function to delete package related info.
+pub async fn delete_package_helper(
+    project_id: impl ToString,
+    package_id: u64,
+	path: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let url = Url::parse_with_params(
+        &format!(
+            "https://gitlab.com/api/v4/projects/{}/packages/{}{}",
+            project_id.to_string(),
+            package_id,
+            path
+        ),
+        &[("", "")],
+    )?;
+    let response = httpclient()
+        .delete(url)
+        .header("Private-Token", gitlab_token())
+        .send()
         .await?;
-        let package = packages
-            .first()
-            .ok_or::<Box<dyn std::error::Error>>("PackageNotFound".into())?;
-        package_files_get(self.project_id, package.id, order_by, sort).await
+    let status = response.status();
+    let content = response.text().await?;
+    eprintln!("delete_package status: {}", status);
+	eprintln!("delete_package content: {}", content);
+    if status != 200 {
+        return Err(format!("DeletePackageErr: {}", status).into());
     }
+    Ok(())
 }
 
-/// Fetch information of packages
+pub async fn delete_package(
+    project_id: impl ToString,
+    package_id: u64,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let path = format!("/{}", package_id);
+    delete_package_helper(project_id, package_id, &path).await?;
+	Ok(())
+}
+
+pub async fn delete_package_file(
+    project_id: impl ToString,
+    package_id: u64,
+    package_file_id: u64,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let path = format!("/{}/package_files/{}", package_id, package_file_id);
+    delete_package_helper(project_id, package_file_id, &path).await?;
+	Ok(())
+}
+
+/// Helper function for fetching information of packages
 pub async fn packages_get_helper<I, K, V>(
-    project_id: u64,
+    project_id: impl ToString,
     path: &str,
     query: I,
 ) -> Result<Vec<u8>, Box<dyn std::error::Error>>
@@ -580,7 +542,8 @@ where
     let url = Url::parse_with_params(
         &format!(
             "https://gitlab.com/api/v4/projects/{}/packages{}",
-            project_id, path
+            project_id.to_string(),
+            path
         ),
         query,
     )?;
@@ -593,58 +556,49 @@ where
     Ok(json_bytes)
 }
 
-/// Fetch information of packages
-pub async fn packages_get<I, K, V>(
-    project_id: u64,
-    query: I,
-) -> Result<Vec<PackageInfo>, Box<dyn std::error::Error>>
-where
-    I: IntoIterator,
-    K: AsRef<str>,
-    V: AsRef<str>,
-    I::Item: Borrow<(K, V)>,
-{
-    let json = packages_get_helper(project_id, "", query).await?;
-    let packages: Vec<PackageInfo> = serde_json::from_slice(&json)?;
-    eprintln!(
-        "Found {} packages for project {}",
-        packages.len(),
-        project_id
-    );
-    Ok(packages)
-}
+// /// Fetch information of packages
+// pub async fn packages_get<I, K, V>(
+//     project_id: u64,
+//     query: I,
+// ) -> Result<Vec<PackageInfo>, Box<dyn std::error::Error>>
+// where
+//     I: IntoIterator,
+//     K: AsRef<str>,
+//     V: AsRef<str>,
+//     I::Item: Borrow<(K, V)>,
+// {
+//     let json = packages_get_helper(project_id, "", query).await?;
+//     let packages: Vec<PackageInfo> = serde_json::from_slice(&json)?;
+//     eprintln!(
+//         "Found {} packages for project {}",
+//         packages.len(),
+//         project_id
+//     );
+//     Ok(packages)
+// }
 
-/// Get package files
-pub async fn package_files_get(
-    project_id: u64,
-    package_id: u64,
-    order_by: &str,
-    sort: &str,
-) -> Result<Vec<PackageFileInfo>, Box<dyn std::error::Error>> {
-    let path = format!("/{}/package_files", package_id);
-    let mut query = vec![];
-    if order_by != "" {
-        query.push(("order_by", order_by));
-    }
-    if sort != "" {
-        query.push(("sort", sort));
-    }
-    let json = packages_get_helper(project_id, &path, query).await?;
-    let package_files: Vec<PackageFileInfo> = serde_json::from_slice(&json)?;
-    eprintln!(
-        "Found {} package files for package {} from project {}",
-        package_files.len(),
-        package_id,
-        project_id
-    );
-    Ok(package_files)
-}
-
-/// Enum for sorting package files.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-enum PackageFilesSortBy {
-    Id,
-    CreatedAt,
-    FileName,
-}
+// /// Get package files
+// pub async fn package_files_get(
+//     project_id: u64,
+//     package_id: u64,
+//     order_by: &str,
+//     sort: &str,
+// ) -> Result<Vec<PackageFileInfo>, Box<dyn std::error::Error>> {
+//     let path = format!("/{}/package_files", package_id);
+//     let mut query = vec![];
+//     if order_by != "" {
+//         query.push(("order_by", order_by));
+//     }
+//     if sort != "" {
+//         query.push(("sort", sort));
+//     }
+//     let json = packages_get_helper(project_id, &path, query).await?;
+//     let package_files: Vec<PackageFileInfo> = serde_json::from_slice(&json)?;
+//     eprintln!(
+//         "Found {} package files for package {} from project {}",
+//         package_files.len(),
+//         package_id,
+//         project_id
+//     );
+//     Ok(package_files)
+// }
