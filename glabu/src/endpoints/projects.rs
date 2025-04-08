@@ -2,9 +2,7 @@ use super::profiles::{group_by_id, group_by_name, me};
 use super::setup::{gitlab_api_url, gitlab_token, httpclient};
 use crate::models::{Project, ProjectPushMirrorPayload, ProjectVisibility};
 use crate::models::{ProjectCreatePayload, ProjectSearchResponse};
-use either::Either;
 use reqwest::header;
-use serde::{Deserialize, Serialize};
 use std::process::Command;
 use urlencoding::encode;
 
@@ -175,6 +173,7 @@ impl ProjectDelete {
             .send()
             .await?;
         let status = response.status();
+		eprintln!("status of deleting project {}: {}", &self.full_name, status);
         if let Err(e) = response.error_for_status_ref() {
             return Err(e.into());
         }

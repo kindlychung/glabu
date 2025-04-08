@@ -31,14 +31,8 @@ fn build_and_push_images() -> Result<()> {
         .run()
         .context("Failed to create manifest")?;
 
-    // Get current architecture
-    let current_arch = cmd!(sh, "uname -m")
-        .read()
-        .context("Failed to get current architecture")?;
-
     for arch in &["amd64", "arm64"] {
         let tag = format!("{}-{}", tag_root, arch);
-
         println!("Building image {}...", tag);
         cmd!(
             sh,

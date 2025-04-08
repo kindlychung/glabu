@@ -4,10 +4,9 @@ use clap::Parser;
 use glabu::{
     cli::{Cli, Commands},
     endpoints::{
-        packages::{ListPackageFiles, PackageAction},
+        packages::PackageAction,
         projects::{ProjectCreate, ProjectDelete, ProjectSearch},
     },
-    models::ProjectVisibility,
 };
 
 #[tokio::main]

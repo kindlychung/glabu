@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
-use crate::models::{Project, ProjectVisibility};
+use crate::models::ProjectVisibility;
 
 /// GitLab Utility (glabu) - A command-line tool for interacting with GitLab api v4
 #[derive(Parser, Debug)]

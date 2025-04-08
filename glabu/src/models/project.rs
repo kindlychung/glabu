@@ -182,8 +182,8 @@ pub struct ProjectCreatePayload {
 }
 
 /// use snake_case here for serde
-#[serde(rename_all = "snake_case")]
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, ValueEnum)]
+#[serde(rename_all = "snake_case")]
 pub enum ProjectVisibility {
     Public,
     Internal,

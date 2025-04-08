@@ -1,4 +1,4 @@
-use std::{os, path::PathBuf};
+use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use xshell::{Shell, cmd};

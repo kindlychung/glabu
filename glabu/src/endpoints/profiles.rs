@@ -1,8 +1,6 @@
 use std::{borrow::Borrow, error::Error};
 
 use crate::models::{Group, User};
-use either::Either;
-use maplit::hashmap;
 use reqwest::Url;
 
 use super::setup::{gitlab_api_url, gitlab_token, httpclient};
