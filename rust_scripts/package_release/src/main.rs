@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{os, path::PathBuf};
 
 use anyhow::{Context, Result};
 use xshell::{Shell, cmd};
@@ -12,7 +12,7 @@ pub fn compress_and_upload() -> Result<()> {
         .context("Failed to get git commit hash")?;
 
     // find out which binary to use for glabu to upload itself
-    let mut binary_for_current_arch;
+    let mut binary_for_current_arch: Option<PathBuf> = None;
     for arch in archs {
         let binary = format!("glabu-{}", arch);
         let binary_path = PathBuf::from("./target").join(&binary);
@@ -23,12 +23,21 @@ pub fn compress_and_upload() -> Result<()> {
             .context("Failed to compress binary with UPX")
             .map_or_else(|_| Ok::<(), anyhow::Error>(()), |_| Ok(()))?;
 
-        if osarch::current_os_arch().is_match(arch) {
+		let osarch_regex = osarch::current_arch();
+		dbg!(&osarch_regex);
+        if osarch_regex.is_match(arch) {
             // it's ok to move binary_path out of the loop, since it's not used after this
-            binary_for_current_arch = binary_path;
+            binary_for_current_arch = Some(binary_path);
             break;
-        }
+        } else {
+			eprintln!("Binary for {} is not compatible with the current architecture", arch);
+		}
     }
+
+	if binary_for_current_arch.is_none() {
+		return Err(anyhow::anyhow!("No binary found for the current architecture"));
+	}
+	let binary_for_current_arch = binary_for_current_arch.unwrap();
 
     for arch in archs {
         let binary = format!("glabu-{}", arch);
