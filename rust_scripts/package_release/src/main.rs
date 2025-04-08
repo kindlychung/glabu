@@ -63,7 +63,7 @@ pub fn build_compress_and_upload() -> Result<()> {
         println!("Uploading the binary {} to the gitlab...", &file_name);
         cmd!(
             sh,
-            "{binary_for_current_arch} package-upload puterize/prebuilt --package-name glabu --package-version {commit_hash} --file-name {file_name} --file-path {binary_path}"
+            "{binary_for_current_arch} package-upload puterize/prebuilt --package-name glabu --package-version {commit_hash} --file-name {file_name}-{arch} --file-path {binary_path}"
         )
         .run()
         .context("Failed to upload binary to GitLab")?;
