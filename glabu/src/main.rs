@@ -4,7 +4,7 @@ use clap::Parser;
 use glabu::{
     cli::{Cli, Commands},
     endpoints::{
-        packages::PackageAction,
+        packages::{GenericPackageOp, ProjectPackageListOp},
         projects::{ProjectCreate, ProjectDelete, ProjectSearch},
     },
 };
@@ -23,16 +23,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             regex,
             output_dir,
         } => {
-            let pf = PackageAction::with_project_path(&project)
-                .await?
-                .package_name(package_name.as_str());
-
+            let mut pf = GenericPackageOp::new(&project, &package_name, "");
+			pf.package_version = package_version;
+			if latest {
+				pf.package_version = None;
+			}
             pf.download_files(
                 output_dir,
                 regex,
                 package_file,
-                package_version,
-                Some(latest),
             )
             .await?;
         }
@@ -43,9 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             file_path,
             file_name,
         } => {
-            let pf = PackageAction::with_project_path(&project)
-                .await?
-                .package_name(package_name.as_str());
+            let generic_package_op = GenericPackageOp::new(&project, &package_name, "");
             let file_path: PathBuf = PathBuf::from(&file_path);
             if !file_path.exists() {
                 return Err(format!("File not found: {}", &file_path.display()).into());
@@ -57,7 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .ok_or("File name not found")
                     .unwrap()
             });
-            pf.upload_package_file(&package_version, &file_name, file_path)
+            generic_package_op.upload_package_file(&package_version, &file_name, file_path)
                 .await?;
         }
         Commands::ProjectCreate {
@@ -93,11 +90,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             package_name,
             package_version,
         } => {
-            let files = PackageAction::with_project_path(&project)
-                .await?
-                .package_name(package_name.as_str())
-                .package_files_by_version(package_version.as_str())
-                .await?;
+            let package_list_op = ProjectPackageListOp::new(&project)
+			.package_name(Some(package_name.as_str().into()))
+                .package_version(Some(package_version.as_str().into()));
+			let files = package_list_op.list().await?;
             let files_json = serde_json::to_string_pretty(&files)?;
             println!("{}", files_json);
         }
