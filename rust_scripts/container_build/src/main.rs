@@ -36,7 +36,7 @@ fn build_and_push_images() -> Result<()> {
         println!("Building image {}...", tag);
         cmd!(
             sh,
-            "podman build --platform linux/{arch} -t {tag} -f glabu/Dockerfile ./glabu"
+            "podman build --platform linux/{arch} --build-arg TARGETPLATFORM=linux/{arch} -t {tag} -f glabu/Dockerfile ./glabu"
         )
         .run()
         .context(format!("Failed to build image for {}", arch))?;
