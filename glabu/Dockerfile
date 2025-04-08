@@ -27,8 +27,8 @@ RUN cargo chef cook --recipe-path recipe.json --release --zigbuild \
 COPY . .
 RUN cargo zigbuild -r --target x86_64-unknown-linux-musl --target aarch64-unknown-linux-musl && \
   mkdir /app/linux && \
-  cp target/aarch64-unknown-linux-musl/release/glabu /app/linux/arm64 && \
-  cp target/x86_64-unknown-linux-musl/release/glabu /app/linux/amd64
+  cp target/aarch64-unknown-linux-musl/release/glabu /app/glabu_aarch64 && \
+  cp target/x86_64-unknown-linux-musl/release/glabu /app/glabu_x86_64 
 
 # (6) Runtime stage (unchanged)
 FROM --platform=${TARGETPLATFORM} alpine:latest AS runtime
@@ -36,6 +36,6 @@ ARG TARGETPLATFORM
 RUN echo "**** TARGETPLATFORM: ${TARGETPLATFORM} ****"
 WORKDIR /app
 # change the name of the binary to match the output of the `arch` command
-COPY --from=builder /app/linux/arm64 /app/linux/aarch64
-COPY --from=builder /app/linux/amd64 /app/linux/x86_64
-CMD "/app/linux/$(uname -m)"
+COPY --from=builder /app/glabu_aarch64 /app/
+COPY --from=builder /app/glabu_x86_64 /app/
+CMD "/app/glabu_$(arch)"
