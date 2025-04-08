@@ -1,5 +1,12 @@
+use std::sync::Mutex;
+
 use anyhow::{Context, Result};
 use xshell::{Shell, cmd};
+
+static MESSAGES: OnceLock<Mutex<Vec<String>>> = OnceLock::new();
+pub fn messages() -> &'static Vec<String> {
+    MESSAGES.get_or_init(|| Mutex::new(Vec::new()))
+}
 
 fn build_and_push_images() -> Result<()> {
     let sh = Shell::new()?;
@@ -79,18 +86,15 @@ fn build_and_push_images() -> Result<()> {
                 .run()
                 .context(format!("Failed to remove container {}", container_id))?;
 			let arch = cmd!(sh, "arch").read().context("Failed to get architecture")?;
-			println!(r####"
-
-
+			
+			let msg = format!(r####"
 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 To install the glabu binary for {arch}:
 
 sudo install ./target/glabu_{arch} /usr/local/bin/glabu
 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-
-
-			"####)
+			"####);
+			messages().lock().unwrap().push(msg);
         }
 		// Add to manifest
 		cmd!(sh, "podman manifest add {tag_root} {tag}")
@@ -109,8 +113,11 @@ sudo install ./target/glabu_{arch} /usr/local/bin/glabu
 fn main() -> Result<()> {
     // Build and push images
     build_and_push_images().context("Failed to build and push images")?;
-
     println!("All images built and pushed successfully.");
+
+	for msg in messages().lock().unwrap().iter() {
+		println!("{}", msg);
+	}
 
     Ok(())
 }
