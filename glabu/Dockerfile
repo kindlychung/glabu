@@ -31,12 +31,11 @@ RUN cargo zigbuild -r --target x86_64-unknown-linux-musl --target aarch64-unknow
   cp target/x86_64-unknown-linux-musl/release/glabu /app/linux/amd64
 
 # (6) Runtime stage (unchanged)
-ARG TARGETPLATFORM
 FROM --platform=${TARGETPLATFORM} alpine:latest AS runtime
+ARG TARGETPLATFORM
 RUN echo "**** TARGETPLATFORM: ${TARGETPLATFORM} ****"
 WORKDIR /app
 COPY --from=builder /app/linux/arm64 /app/linux/arm64
 COPY --from=builder /app/linux/amd64 /app/linux/amd64
-# one of the 2 binaries above will be overwritten by the one below, that's ok
-COPY --from=builder /app/${TARGETPLATFORM} /app/${TARGETPLATFORM}
+ARG TARGETPLATFORM
 CMD "/app/${TARGETPLATFORM}"
