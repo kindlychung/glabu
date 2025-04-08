@@ -432,7 +432,6 @@ impl ListPackageFiles {
     /// Lists files of a package.
     ///
     /// # Returns
-    /// GET /projects/:id/packages/:package_id/package_files
     /// A `Result` containing a vector of `PackageFilesItem` or an error.
     pub async fn run(
         &self,
@@ -441,7 +440,6 @@ impl ListPackageFiles {
     ) -> Result<Vec<PackageFileInfo>, Box<dyn std::error::Error>> {
         let packages = packages_get(
             self.project_id,
-            "",
             &[
                 ("package_name", self.package_name.as_str()),
                 ("package_version", self.package_version.as_str()),
@@ -456,11 +454,11 @@ impl ListPackageFiles {
 }
 
 /// Fetch information of packages
-pub async fn packages_get<I, K, V>(
+pub async fn packages_get_helper<I, K, V>(
     project_id: u64,
     path: &str,
     query: I,
-) -> Result<Vec<PackageInfo>, Box<dyn std::error::Error>>
+) -> Result<Vec<u8>, Box<dyn std::error::Error>>
 where
     I: IntoIterator,
     K: AsRef<str>,
@@ -479,23 +477,39 @@ where
         .header("Private-Token", gitlab_token())
         .send()
         .await?;
-    let json_str = response.text().await?;
-    let res = serde_json::from_str(&json_str)?;
-    Ok(res)
+    let json_bytes = response.bytes().await?.to_vec();
+    Ok(json_bytes)
+}
+
+/// Fetch information of packages
+pub async fn packages_get<I, K, V>(
+    project_id: u64,
+    query: I,
+) -> Result<Vec<PackageInfo>, Box<dyn std::error::Error>>
+where
+    I: IntoIterator,
+    K: AsRef<str>,
+    V: AsRef<str>,
+    I::Item: Borrow<(K, V)>,
+{
+    let json = packages_get_helper(project_id, "", query).await?;
+    let packages: Vec<PackageInfo> = serde_json::from_slice(&json)?;
+    eprintln!(
+        "Found {} packages for project {}",
+        packages.len(),
+        project_id
+    );
+    Ok(packages)
 }
 
 /// Get package files
-/// GET /projects/:id/packages/:package_id/package_files
 pub async fn package_files_get(
     project_id: u64,
     package_id: u64,
     order_by: &str,
     sort: &str,
 ) -> Result<Vec<PackageFileInfo>, Box<dyn std::error::Error>> {
-    let url = format!(
-        "https://gitlab.com/api/v4/projects/{}/packages/{}/package_files",
-        project_id, package_id
-    );
+    let path = format!("/{}/package_files", package_id);
     let mut query = vec![];
     if order_by != "" {
         query.push(("order_by", order_by));
@@ -503,15 +517,15 @@ pub async fn package_files_get(
     if sort != "" {
         query.push(("sort", sort));
     }
-    let url = Url::parse_with_params(&url, query)?;
-    let response = httpclient()
-        .get(url)
-        .header("Private-Token", gitlab_token())
-        .send()
-        .await?;
-    let json_str = response.text().await?;
-    let res = serde_json::from_str(&json_str)?;
-    Ok(res)
+    let json = packages_get_helper(project_id, &path, query).await?;
+    let package_files: Vec<PackageFileInfo> = serde_json::from_slice(&json)?;
+    eprintln!(
+        "Found {} package files for package {} from project {}",
+        package_files.len(),
+        package_id,
+        project_id
+    );
+    Ok(package_files)
 }
 
 /// Enum for sorting package files.
