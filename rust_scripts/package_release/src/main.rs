@@ -15,6 +15,7 @@ pub fn build_compress_and_upload() -> Result<()> {
     let mut binary_for_current_arch: Option<PathBuf> = None;
     for arch in archs {
 		let target_triple = format!("{}-unknown-linux-musl", arch);
+		let binary_path = PathBuf::from(format!("./target/{target_triple}/release/glabu"));
 		// Build the binary for the current architecture
 		println!("Building the binary for {arch}...");
 		cmd!(
@@ -25,8 +26,6 @@ pub fn build_compress_and_upload() -> Result<()> {
 		.context(format!("Failed to build binary for {}", arch))?;
 
 		// Compress the binary with UPX
-		let binary_path = PathBuf::from(format!("./target/{arch}-unknown-linux-musl/release/glabu"));
-        // Compress the binary with UPX
         println!("Compressing the binary");
         cmd!(sh, "upx {binary_path}")
             .run()
@@ -54,8 +53,8 @@ pub fn build_compress_and_upload() -> Result<()> {
     let binary_for_current_arch = binary_for_current_arch.unwrap();
 
     for arch in archs {
-        let binary = format!("glabu-{}", arch);
-        let binary_path = PathBuf::from("./target").join(&binary);
+		let target_triple = format!("{}-unknown-linux-musl", arch);
+		let binary_path = PathBuf::from(format!("./target/{target_triple}/release/glabu"));
         // Upload to GitLab
         let file_name = binary_path
             .file_name()
