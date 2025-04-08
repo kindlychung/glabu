@@ -63,16 +63,16 @@ fn build_and_push_images() -> Result<()> {
             sh.create_dir("./target")?;
             cmd!(
                 sh,
-                "podman cp {container_id}:/app/linux/arm64 ./target/glabu-arm64"
+                "podman cp {container_id}:/app/glabu_aarch64 ./target/"
             )
             .run()
-            .context("Failed to copy binary glabu-arm64")?;
+            .context("Failed to copy binary glabu_aarch64")?;
             cmd!(
                 sh,
-                "podman cp {container_id}:/app/linux/amd64 ./target/glabu-amd64"
+                "podman cp {container_id}:/app/glabu_x86_64 ./target/"
             )
             .run()
-            .context("Failed to copy binary glabu-amd64")?;
+            .context("Failed to copy binary glabu_x86_64")?;
 
             // Clean up container
             cmd!(sh, "podman rm -v {container_id}")
