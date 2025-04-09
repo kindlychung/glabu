@@ -1,8 +1,10 @@
 use super::profiles::{group_by_id, group_by_name, me};
-use super::setup::{gitlab_api_url, gitlab_token, httpclient};
+use std::borrow::Borrow;
+use super::setup::{gitlab_api_url_with_query, gitlab_token, httpclient};
+use crate::endpoints::setup::gitlab_api_url;
 use crate::models::{Project, ProjectPushMirrorPayload, ProjectVisibility};
 use crate::models::{ProjectCreatePayload, ProjectSearchResponse};
-use reqwest::header;
+use reqwest::{header, Url};
 use std::process::Command;
 use urlencoding::encode;
 
@@ -91,7 +93,7 @@ impl ProjectCreate {
             let payload_str = serde_json::to_string(&payload).unwrap();
             eprintln!("payload: {}", &payload_str[0..30]);
             let response = httpclient()
-                .post(gitlab_api_url("/projects", None))
+                .post(gitlab_api_url("/projects", )?)
                 .header("Private-Token", gitlab_token())
                 .json(&payload)
                 .send()
@@ -124,11 +126,8 @@ impl ProjectCreate {
 
 pub async fn project_get(name: &str) -> Result<Project, Box<dyn std::error::Error>> {
     let response = httpclient()
-        .get(gitlab_api_url(
-            &format!("/projects/{}", encode(&name)),
-            None,
-        ))
-        .header("Private-Token", gitlab_token())
+        .get(gitlab_api_url( &format!("/projects/{}", encode(&name)),)?) 
+			.header("Private-Token", gitlab_token())
         .send()
         .await?;
     let status = response.status();
@@ -167,8 +166,7 @@ impl ProjectDelete {
         let response = httpclient()
             .delete(gitlab_api_url(
                 &format!("/projects/{}", encode(&self.full_name)),
-                None,
-            ))
+            )?)
             .header("Private-Token", gitlab_token())
             .send()
             .await?;
@@ -222,9 +220,10 @@ impl ProjectPushMirror {
     pub async fn run(self) -> Result<(), Box<dyn std::error::Error>> {
         let repo_id = self.project_id;
         let body: ProjectPushMirrorPayload = self.into();
-        let api_url = gitlab_api_url(&format!("/projects/{}/remote_mirrors", repo_id), None);
+        let api_url = gitlab_api_url(&format!("/projects/{}/remote_mirrors", repo_id), 
+)?;
         let response = httpclient()
-            .post(&api_url)
+            .post(api_url)
             .header("Private-Token", gitlab_token())
             .json(&body)
             .send()
@@ -364,4 +363,30 @@ impl ProjectForkPrivate {
         }
         return Ok(project);
     }
+}
+
+
+
+/// Helper function for fetching information of packages
+pub async fn projects_get_helper<I, K, V>(
+    path: &str,
+    query: I,
+) -> Result<Vec<u8>, Box<dyn std::error::Error>>
+where
+    I: IntoIterator,
+    K: AsRef<str>,
+    V: AsRef<str>,
+    I::Item: Borrow<(K, V)>,
+{
+		let url = gitlab_api_url_with_query(&format!(
+		"/projects{}",
+		path
+	), query)?;
+    let response = httpclient()
+        .get(url)
+        .header("Private-Token", gitlab_token())
+        .send()
+        .await?;
+    let json_bytes = response.bytes().await?.to_vec();
+    Ok(json_bytes)
 }

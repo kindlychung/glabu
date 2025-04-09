@@ -45,7 +45,8 @@
 //! Note the layout above is just conceptual, the actual response from the API is different.
 //! See the [GitLab API documentation](https://docs.gitlab.com/user/packages/generic_packages) for more details.
 
-use super::setup::{gitlab_api_url, gitlab_token, httpclient};
+use super::setup::{gitlab_api_url_with_query, gitlab_token, httpclient};
+use crate::endpoints::setup::gitlab_api_url;
 use crate::endpoints::PrintOutput;
 use crate::models::{PackageFileInfo, PackageInfo, SortDirection};
 use regex::Regex;
@@ -316,7 +317,8 @@ impl ProjectPackageListOp {
     }
 }
 
-/// Info need for uploading/downloading package files.
+/// Info need for uploading/downloading generic package files.
+/// See gitlab api doc: https://docs.gitlab.com/user/packages/generic_packages/
 #[derive(Debug, Clone)]
 pub struct GenericPackageOp {
     ///  Your project ID or URL-encoded path
@@ -386,7 +388,7 @@ impl GenericPackageOp {
                 package_file.version.as_ref().unwrap(),
                 package_file.file_name.as_str()
             );
-            let url = gitlab_api_url(&package_file_path, None);
+            let url = gitlab_api_url(&package_file_path, )?;
             let output_file = if output_dir.is_dir() {
                 output_dir.join(&package_file.file_name)
             } else {
@@ -394,7 +396,7 @@ impl GenericPackageOp {
                 PathBuf::from("/tmp").join(&package_file.file_name)
             };
             let output_str = output_file.as_path().to_str().unwrap().to_string();
-            let _ = download_file(&url, &output_file).await?;
+            let _ = download_file(url, &output_file).await?;
             outputs.push(output_str);
         }
         let msg = PrintOutput {
@@ -422,10 +424,10 @@ impl GenericPackageOp {
             "/projects/{}/packages/generic/{}/{}/{}",
             self.project_id, self.package_name, package_version, file_name
         );
-        let url = gitlab_api_url(&url_path, None);
+        let url = gitlab_api_url(&url_path, )?;
         let file = tokio::fs::read(file_path).await?;
         let response = httpclient()
-            .put(&url)
+            .put(url)
             .header("Private-Token", gitlab_token())
             .body(file)
             .send()
@@ -455,7 +457,7 @@ impl GenericPackageOp {
 /// # Returns
 ///
 /// A `Result` indicating success or an error.
-pub async fn download_file<P>(url: &str, output_file: P) -> Result<(), Box<dyn std::error::Error>>
+pub async fn download_file<P>(url: Url, output_file: P) -> Result<(), Box<dyn std::error::Error>>
 where
     P: AsRef<Path>,
 {
@@ -484,15 +486,12 @@ pub async fn delete_package_helper(
     package_id: u64,
 	path: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let url = Url::parse_with_params(
-        &format!(
-            "https://gitlab.com/api/v4/projects/{}/packages/{}{}",
-            project_id.to_string(),
-            package_id,
-            path
-        ),
-        &[("", "")],
-    )?;
+	let url = gitlab_api_url(&format!(
+		"/projects/{}/packages/{}{}",
+		project_id.to_string(),
+		package_id,
+		path
+	))?;
     let response = httpclient()
         .delete(url)
         .header("Private-Token", gitlab_token())
@@ -539,14 +538,11 @@ where
     V: AsRef<str>,
     I::Item: Borrow<(K, V)>,
 {
-    let url = Url::parse_with_params(
-        &format!(
-            "https://gitlab.com/api/v4/projects/{}/packages{}",
-            project_id.to_string(),
-            path
-        ),
-        query,
-    )?;
+	let url = gitlab_api_url_with_query(&format!(
+		"/projects/{}/packages{}",
+		project_id.to_string(),
+		path
+	), query)?;
     let response = httpclient()
         .get(url)
         .header("Private-Token", gitlab_token())
@@ -555,50 +551,3 @@ where
     let json_bytes = response.bytes().await?.to_vec();
     Ok(json_bytes)
 }
-
-// /// Fetch information of packages
-// pub async fn packages_get<I, K, V>(
-//     project_id: u64,
-//     query: I,
-// ) -> Result<Vec<PackageInfo>, Box<dyn std::error::Error>>
-// where
-//     I: IntoIterator,
-//     K: AsRef<str>,
-//     V: AsRef<str>,
-//     I::Item: Borrow<(K, V)>,
-// {
-//     let json = packages_get_helper(project_id, "", query).await?;
-//     let packages: Vec<PackageInfo> = serde_json::from_slice(&json)?;
-//     eprintln!(
-//         "Found {} packages for project {}",
-//         packages.len(),
-//         project_id
-//     );
-//     Ok(packages)
-// }
-
-// /// Get package files
-// pub async fn package_files_get(
-//     project_id: u64,
-//     package_id: u64,
-//     order_by: &str,
-//     sort: &str,
-// ) -> Result<Vec<PackageFileInfo>, Box<dyn std::error::Error>> {
-//     let path = format!("/{}/package_files", package_id);
-//     let mut query = vec![];
-//     if order_by != "" {
-//         query.push(("order_by", order_by));
-//     }
-//     if sort != "" {
-//         query.push(("sort", sort));
-//     }
-//     let json = packages_get_helper(project_id, &path, query).await?;
-//     let package_files: Vec<PackageFileInfo> = serde_json::from_slice(&json)?;
-//     eprintln!(
-//         "Found {} package files for package {} from project {}",
-//         package_files.len(),
-//         package_id,
-//         project_id
-//     );
-//     Ok(package_files)
-// }

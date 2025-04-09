@@ -1,14 +1,14 @@
 use std::{borrow::Borrow, error::Error};
 
-use crate::models::{Group, User};
+use crate::{endpoints::setup::gitlab_api_url, models::{Group, User}};
 use reqwest::Url;
 
-use super::setup::{gitlab_api_url, gitlab_token, httpclient};
+use super::setup::{gitlab_api_url_with_query, gitlab_token, httpclient};
 
 /// Fetch the current user's information from GitLab.
 pub async fn me() -> Result<User, Box<dyn std::error::Error>> {
     let response = httpclient()
-        .get(gitlab_api_url("/user", None))
+        .get(gitlab_api_url("/user", )?)
         .header("Private-Token", gitlab_token())
         .send()
         .await?;
@@ -19,21 +19,20 @@ pub async fn me() -> Result<User, Box<dyn std::error::Error>> {
 }
 
 /// Fetch groups info owned by current user from GitLab
-async fn groups_get_helper<I, P, K, V>(
-    path: P,
+async fn groups_get_helper<I, K, V>(
+    path: &str,
     query: I,
 ) -> Result<Vec<u8>, Box<dyn std::error::Error>>
 where
     I: IntoIterator,
-    P: AsRef<str>,
     K: AsRef<str>,
     V: AsRef<str>,
     I::Item: Borrow<(K, V)>,
 {
-    let url = Url::parse_with_params(
-        &format!("https://gitlab.com/api/v4/groups{}", path.as_ref()),
-        query,
-    )?;
+	let url = gitlab_api_url_with_query(&format!(
+		"/groups{}",
+		path
+	), query)?;
     let response = httpclient()
         .get(url)
         .header("Private-Token", gitlab_token())
