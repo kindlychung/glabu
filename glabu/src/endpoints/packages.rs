@@ -46,8 +46,8 @@
 //! See the [GitLab API documentation](https://docs.gitlab.com/user/packages/generic_packages) for more details.
 
 use super::setup::{gitlab_api_url_with_query, gitlab_token, httpclient};
-use crate::endpoints::setup::gitlab_api_url;
 use crate::endpoints::PrintOutput;
+use crate::endpoints::setup::gitlab_api_url;
 use crate::models::{PackageFileInfo, PackageInfo, SortDirection};
 use regex::Regex;
 use reqwest::Url;
@@ -176,8 +176,12 @@ impl ProjectPackageListOp {
     ///
     /// A `ProjectPackageList` instance.
     pub fn new(id: impl ToString) -> Self {
+		let mut id = id.to_string();
+		if id.contains("/") {
+			id = urlencoding::encode(id.as_str()).to_string();
+		}
         Self {
-            id: id.to_string(),
+            id,
             order_by: None,
             sort: None,
             package_type: None,
@@ -200,46 +204,46 @@ impl ProjectPackageListOp {
     ///
     /// The updated `ProjectPackageList` instance.
     pub fn order_by(mut self, order_by: Option<ProjectPackageListOrderBy>) -> Self {
-		self.order_by = order_by;
+        self.order_by = order_by;
         self
     }
 
     pub fn sort(mut self, sort: Option<SortDirection>) -> Self {
-		self.sort = sort;
+        self.sort = sort;
         self
     }
 
     pub fn package_type(mut self, package_type: Option<PackageType>) -> Self {
-		self.package_type = package_type;
+        self.package_type = package_type;
         self
     }
 
     pub fn package_name(mut self, package_name: Option<String>) -> Self {
-		self.package_name = package_name;
+        self.package_name = package_name;
         self
     }
     pub fn package_version(mut self, package_version: Option<String>) -> Self {
-		self.package_version = package_version;
+        self.package_version = package_version;
         self
     }
     pub fn include_versionless(mut self, include_versionless: Option<bool>) -> Self {
-		self.include_versionless = include_versionless;
+        self.include_versionless = include_versionless;
         self
     }
     pub fn status(mut self, status: Option<PackageStatus>) -> Self {
-		self.status = status;
+        self.status = status;
         self
     }
     pub fn per_page(mut self, per_page: Option<u64>) -> Self {
-		self.per_page = per_page;
+        self.per_page = per_page;
         self
     }
     pub fn page(mut self, page: Option<u64>) -> Self {
-		self.page = page;
+        self.page = page;
         self
     }
 
-    pub fn latest(&mut self)  {
+    pub fn latest(&mut self) {
         self.sort = Some(SortDirection::Desc);
         self.order_by = Some(ProjectPackageListOrderBy::CreatedAt);
         self.per_page = Some(1);
@@ -247,25 +251,40 @@ impl ProjectPackageListOp {
     }
 
     pub async fn list(&self) -> Result<Vec<PackageInfo>, Box<dyn std::error::Error>> {
+        eprintln!("list: {:?}", self);
         let self_json = serde_json::to_string(&self)?;
-        let self_map: HashMap<String, Option<String>> = serde_json::from_str(&self_json)?;
-        let query: Vec<(&str, &str)> = self_map
+        eprintln!("self_json: {}", self_json);
+        let self_map: HashMap<String, serde_json::Value> = serde_json::from_str(&self_json)?;
+        let query: Vec<(&str, String)> = self_map
             .iter()
             .filter_map(|(key, value)| {
-                value.as_ref().map(|value| {
-                    // eprintln!("key: {}, value: {}", key, value);
-                    (key.as_str(), value.as_str())
-                })
+                if value.is_null() {
+                    return None;
+                }
+                Some((key.as_str(), value.to_string().replace("\"", "")))
             })
             .collect();
-        let json = packages_get_helper(self.id.clone(), "", query).await?;
+        let query_with_str_value = query
+            .iter()
+            .map(|(k, v)| {
+				eprintln!("{}: {}", k, v);
+				(*k, v.as_str())
+	})
+            .collect::<Vec<(&str, &str)>>();
+        let json = packages_get_helper(&self.id, "", &query_with_str_value).await?;
+        eprintln!(
+            "packages_get_helper json: {}",
+            String::from_utf8_lossy(&json)
+        );
         let packages = serde_json::from_slice::<Vec<PackageInfo>>(&json)?;
         Ok(packages)
     }
 
     pub async fn first(&self) -> Result<PackageInfo, Box<dyn std::error::Error>> {
         let mut packages = self.list().await?;
-        let res = packages.pop().ok_or::<Box<dyn std::error::Error>>("PackageNotFound".into())?;
+        let res = packages
+            .pop()
+            .ok_or::<Box<dyn std::error::Error>>("PackageNotFound".into())?;
         Ok(res)
     }
 
@@ -285,6 +304,7 @@ impl ProjectPackageListOp {
     ) -> Result<Vec<PackageFileInfo>, Box<dyn std::error::Error>> {
         let path = format!("/{}/package_files", &package.id);
         let json = packages_get_helper(self.id.clone(), &path, vec![("", "")]).await?;
+		eprintln!("package_files json: {}", String::from_utf8_lossy(&json));
         let package_files = serde_json::from_slice::<Vec<PackageFileInfo>>(&json)?;
         let package_files = package_files
             .into_iter()
@@ -341,20 +361,19 @@ impl GenericPackageOp {
         }
     }
 
-	pub fn package_name(mut self, package_name: &str) -> Self {
-		self.package_name = package_name.to_string();
-		self
-	}
+    pub fn package_name(mut self, package_name: &str) -> Self {
+        self.package_name = package_name.to_string();
+        self
+    }
 
-	pub fn package_version(mut self, pv: Option<String>) -> Self {
-		self.package_version = pv;
-		self
-	}
-	pub fn file_name(mut self, file_name: &str) -> Self {
-		self.file_name = file_name.to_string();
-		self
-	}
-
+    pub fn package_version(mut self, pv: Option<String>) -> Self {
+        self.package_version = pv;
+        self
+    }
+    pub fn file_name(mut self, file_name: &str) -> Self {
+        self.file_name = file_name.to_string();
+        self
+    }
 
     pub async fn download_files(
         self,
@@ -364,8 +383,8 @@ impl GenericPackageOp {
     ) -> Result<(), Box<dyn std::error::Error>> {
         let pattern = pattern.map(|x| Regex::new(&x).unwrap());
         let filter = make_filter(pattern, filename);
-        let mut project_packages_list_op =
-            ProjectPackageListOp::new(&self.project_id).package_name(Some(self.package_name.clone()));
+        let mut project_packages_list_op = ProjectPackageListOp::new(&self.project_id)
+            .package_name(Some(self.package_name.clone()));
         let package_files = if let Some(version) = self.package_version.as_ref() {
             project_packages_list_op
                 .package_files_by_version(version)
@@ -388,7 +407,7 @@ impl GenericPackageOp {
                 package_file.version.as_ref().unwrap(),
                 package_file.file_name.as_str()
             );
-            let url = gitlab_api_url(&package_file_path, )?;
+            let url = gitlab_api_url(&package_file_path)?;
             let output_file = if output_dir.is_dir() {
                 output_dir.join(&package_file.file_name)
             } else {
@@ -424,7 +443,7 @@ impl GenericPackageOp {
             "/projects/{}/packages/generic/{}/{}/{}",
             self.project_id, self.package_name, package_version, file_name
         );
-        let url = gitlab_api_url(&url_path, )?;
+        let url = gitlab_api_url(&url_path)?;
         let file = tokio::fs::read(file_path).await?;
         let response = httpclient()
             .put(url)
@@ -484,14 +503,14 @@ where
 pub async fn delete_package_helper(
     project_id: impl ToString,
     package_id: u64,
-	path: &str,
+    path: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-	let url = gitlab_api_url(&format!(
-		"/projects/{}/packages/{}{}",
-		project_id.to_string(),
-		package_id,
-		path
-	))?;
+    let url = gitlab_api_url(&format!(
+        "/projects/{}/packages/{}{}",
+        project_id.to_string(),
+        package_id,
+        path
+    ))?;
     let response = httpclient()
         .delete(url)
         .header("Private-Token", gitlab_token())
@@ -500,7 +519,7 @@ pub async fn delete_package_helper(
     let status = response.status();
     let content = response.text().await?;
     eprintln!("delete_package status: {}", status);
-	eprintln!("delete_package content: {}", content);
+    eprintln!("delete_package content: {}", content);
     if status != 200 {
         return Err(format!("DeletePackageErr: {}", status).into());
     }
@@ -513,7 +532,7 @@ pub async fn delete_package(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let path = format!("/{}", package_id);
     delete_package_helper(project_id, package_id, &path).await?;
-	Ok(())
+    Ok(())
 }
 
 pub async fn delete_package_file(
@@ -523,7 +542,7 @@ pub async fn delete_package_file(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let path = format!("/{}/package_files/{}", package_id, package_file_id);
     delete_package_helper(project_id, package_file_id, &path).await?;
-	Ok(())
+    Ok(())
 }
 
 /// Helper function for fetching information of packages
@@ -538,11 +557,10 @@ where
     V: AsRef<str>,
     I::Item: Borrow<(K, V)>,
 {
-	let url = gitlab_api_url_with_query(&format!(
-		"/projects/{}/packages{}",
-		project_id.to_string(),
-		path
-	), query)?;
+    let url = gitlab_api_url_with_query(
+        &format!("/projects/{}/packages{}", project_id.to_string(), path),
+        query,
+    )?;
     let response = httpclient()
         .get(url)
         .header("Private-Token", gitlab_token())
