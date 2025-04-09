@@ -16,4 +16,3 @@ osarch = {git = "https://gitlab.com/puterize/osarch.git", rev = "237fb78b2fce45d
 # codegen-units = 1
 panic = "abort"
 strip = true
-
