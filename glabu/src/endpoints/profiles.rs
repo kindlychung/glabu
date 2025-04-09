@@ -1,13 +1,16 @@
 use std::{borrow::Borrow, error::Error};
 
-use crate::{endpoints::setup::gitlab_api_url, models::{Group, User}};
+use crate::{
+    endpoints::setup::gitlab_api_url,
+    models::{Group, User},
+};
 
 use super::setup::{gitlab_api_url_with_query, gitlab_token, httpclient};
 
 /// Fetch the current user's information from GitLab.
 pub async fn me() -> Result<User, Box<dyn std::error::Error>> {
     let response = httpclient()
-        .get(gitlab_api_url("/user", )?)
+        .get(gitlab_api_url("/user")?)
         .header("Private-Token", gitlab_token())
         .send()
         .await?;
@@ -28,10 +31,7 @@ where
     V: AsRef<str>,
     I::Item: Borrow<(K, V)>,
 {
-	let url = gitlab_api_url_with_query(&format!(
-		"/groups{}",
-		path
-	), query)?;
+    let url = gitlab_api_url_with_query(&format!("/groups{}", path), query)?;
     let response = httpclient()
         .get(url)
         .header("Private-Token", gitlab_token())
