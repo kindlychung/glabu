@@ -1,8 +1,7 @@
-use std::{collections::HashMap, sync::OnceLock};
+use std::sync::OnceLock;
 use std::borrow::Borrow;
 
 use reqwest::{Client as ReqwestClient, Url};
-use urlencoding::encode;
 
 static GITLAB_TOKEN: OnceLock<String> = OnceLock::new();
 

@@ -4,7 +4,7 @@ use super::setup::{gitlab_api_url_with_query, gitlab_token, httpclient};
 use crate::endpoints::setup::gitlab_api_url;
 use crate::models::{Project, ProjectPushMirrorPayload, ProjectVisibility};
 use crate::models::{ProjectCreatePayload, ProjectSearchResponse};
-use reqwest::{header, Url};
+use reqwest::header;
 use std::process::Command;
 use urlencoding::encode;
 

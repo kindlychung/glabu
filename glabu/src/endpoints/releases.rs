@@ -1,5 +1,5 @@
 use super::projects::project_get;
-use super::setup::{gitlab_api_url, gitlab_api_url_with_query, gitlab_token, httpclient};
+use super::setup::{gitlab_api_url, gitlab_token, httpclient};
 use crate::models::ProjectRelease;
 use either::Either;
 

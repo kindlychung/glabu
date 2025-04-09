@@ -1,7 +1,6 @@
 use std::{borrow::Borrow, error::Error};
 
 use crate::{endpoints::setup::gitlab_api_url, models::{Group, User}};
-use reqwest::Url;
 
 use super::setup::{gitlab_api_url_with_query, gitlab_token, httpclient};
 
