@@ -1,4 +1,4 @@
-use super::projects::project_get;
+use super::projects::project_get_by_id;
 use super::setup::{gitlab_api_url, gitlab_token, httpclient};
 use crate::models::ProjectRelease;
 use either::Either;
@@ -12,14 +12,17 @@ impl ProjectReleasesGet {
         Self { project_id }
     }
     pub async fn from_full_path(full_path: &str) -> Result<Self, Box<dyn std::error::Error>> {
-        let project_id = project_get(full_path).await?.id;
+        let project_id = project_get_by_id(full_path).await?.id;
         Ok(Self::new(project_id))
     }
     pub async fn run(
         &self,
     ) -> Result<Either<String, Vec<ProjectRelease>>, Box<dyn std::error::Error>> {
         let response = httpclient()
-            .get(gitlab_api_url( &format!("/projects/{}/releases", self.project_id),)?)
+            .get(gitlab_api_url(&format!(
+                "/projects/{}/releases",
+                self.project_id
+            ))?)
             .header("Private-Token", gitlab_token())
             .send()
             .await?;
@@ -30,7 +33,10 @@ impl ProjectReleasesGet {
 
     pub async fn latest(&self) -> Result<ProjectRelease, Box<dyn std::error::Error>> {
         let response = httpclient()
-            .get(gitlab_api_url( &format!("/projects/{}/releases/permalink/latest", self.project_id),)?)
+            .get(gitlab_api_url(&format!(
+                "/projects/{}/releases/permalink/latest",
+                self.project_id
+            ))?)
             .header("Private-Token", gitlab_token())
             .send()
             .await?;
