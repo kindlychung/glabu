@@ -29,6 +29,19 @@ pub enum Commands {
         #[arg(short, long, default_value_t = false)]
         mirror_to_github: bool,
     },
+
+    /// Create a private fork of a project
+    ProjectForkPrivate {
+        /// Url of the project to fork
+        #[arg(short = 'u', long)]
+        project_url: String,
+        /// Name of the forked project
+        #[arg(short = 'n', long)]
+        targe_name: String,
+        /// Description of the forked project
+        #[arg(short = 'd', long, default_value = "")]
+        description: String,
+    },
     /// Delete a project
     ProjectDelete {
         /// Full path to the project, for example: owner/project
