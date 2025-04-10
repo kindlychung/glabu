@@ -395,4 +395,16 @@ mod projects_tests {
         assert_eq!(project.path_with_namespace, "puterize/glabu");
         Ok(())
     }
+
+	async fn test_project_fork_private() -> Result<(), Box<dyn std::error::Error>> {
+		let project = ProjectForkPrivate::new("https://gitlab.com/puterize/glabu.git", "glabu_fork")
+			.description("forked from glabu")
+			.mirror_to_github(true)
+			.run()
+			.await?;
+		assert_eq!(project.name, "glabu_fork");
+		assert_eq!(project.name_with_namespace, "puterize / glabu_fork");
+		assert_eq!(project.path_with_namespace, "puterize/glabu_fork");
+		Ok(())
+	}
 }
