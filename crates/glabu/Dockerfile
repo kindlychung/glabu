@@ -15,6 +15,7 @@ RUN rustup target add x86_64-unknown-linux-musl aarch64-unknown-linux-musl
 # (3) Planner stage (unchanged)
 FROM chef AS planner
 COPY . .
+RUN ls -lah
 RUN cargo chef prepare --recipe-path recipe.json
 
 # (4) Builder stage (with OpenSSL fixes)
@@ -25,7 +26,8 @@ RUN cargo chef cook --recipe-path recipe.json --release --zigbuild \
 
 # (5) Final build with static OpenSSL
 COPY . .
-RUN cargo zigbuild -r --target x86_64-unknown-linux-musl --target aarch64-unknown-linux-musl && \
+RUN ls -lah
+RUN cargo zigbuild --package glabu -r --target x86_64-unknown-linux-musl --target aarch64-unknown-linux-musl && \
   mkdir /app/linux && \
   cp target/aarch64-unknown-linux-musl/release/glabu /app/glabu_aarch64 && \
   cp target/x86_64-unknown-linux-musl/release/glabu /app/glabu_x86_64 
