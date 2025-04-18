@@ -117,11 +117,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let res_json = serde_json::to_string_pretty(&res)?;
             println!("{}", res_json);
         }
-        Commands::Completions(args) => {
+        Commands::Completions { shell } => {
             use clap::CommandFactory;
             let mut cmd = Cli::command();
             let cmd_name = cmd.get_name().to_string();
-            clap_complete::generate(args.shell, &mut cmd, cmd_name, &mut std::io::stdout());
+            clap_complete::generate(shell, &mut cmd, cmd_name, &mut std::io::stdout());
         }
     }
     Ok(())
