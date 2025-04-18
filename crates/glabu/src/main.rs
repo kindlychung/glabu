@@ -10,11 +10,11 @@ use glabu::{
 };
 
 fn encode_project_id(project: &str) -> String {
-	let mut project_id = project.to_string();
-	if project_id.contains('/') {
-		project_id = project_id.replace('/', "%2F");
-	}
-	project_id
+    let mut project_id = project.to_string();
+    if project_id.contains('/') {
+        project_id = project_id.replace('/', "%2F");
+    }
+    project_id
 }
 
 #[tokio::main]
@@ -31,7 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             regex,
             output_dir,
         } => {
-			let project = encode_project_id(&project);
+            let project = encode_project_id(&project);
             let mut pf = GenericPackageOp::new(&project, &package_name, "");
             pf.package_version = package_version;
             if latest {
@@ -46,7 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             file_path,
             file_name,
         } => {
-			let project = encode_project_id(&project);
+            let project = encode_project_id(&project);
             let generic_package_op = GenericPackageOp::new(&project, &package_name, "");
             let file_path: PathBuf = PathBuf::from(&file_path);
             if !file_path.exists() {
@@ -70,7 +70,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             visibility,
             mirror_to_github,
         } => {
-			let project = encode_project_id(&project);
+            let project = encode_project_id(&project);
             let project_action = match group {
                 Some(group) => ProjectCreate::for_group(&project, &group)
                     .await?
@@ -85,7 +85,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", res_json);
         }
         Commands::ProjectDelete { project } => {
-			let project = encode_project_id(&project);
+            let project = encode_project_id(&project);
             ProjectDelete::new(&project).await?.run().await?;
         }
         Commands::ProjectSearch { term } => {
@@ -98,7 +98,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             package_name,
             package_version,
         } => {
-			let project = encode_project_id(&project);
+            let project = encode_project_id(&project);
             let package_list_op = ProjectPackageListOp::new(&project)
                 .package_name(Some(package_name.as_str().into()))
                 .package_version(Some(package_version.as_str().into()));
@@ -116,6 +116,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let res = fork_op.run().await?;
             let res_json = serde_json::to_string_pretty(&res)?;
             println!("{}", res_json);
+        }
+        Commands::Completions(args) => {
+            use clap::CommandFactory;
+            let mut cmd = Cli::command();
+            let cmd_name = cmd.get_name().to_string();
+            clap_complete::generate(args.shell, &mut cmd, cmd_name, &mut std::io::stdout());
         }
     }
     Ok(())
