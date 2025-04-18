@@ -12,11 +12,13 @@
 cargo build --release --package glabu 
 # produce multiarch, statically linked binary using zigbuild
 cargo zigbuild -r --target x86_64-unknown-linux-musl --target aarch64-unknown-linux-musl  --package glabu 
-
 ```
-## Generate rpm package
+
+## Shell completion
+
+## Upload package to gitlab
 
 ```bash
-cargo generate-rpm --target x86_64-unknown-linux-musl --package glabu
-cargo generate-rpm --target aarch64-unknown-linux-musl --package glabu
+cargo run -p package_release
 ```
+
