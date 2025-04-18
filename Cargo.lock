@@ -447,10 +447,11 @@ dependencies = [
 [[package]]
 name = "ghu"
 version = "0.1.0"
-source = "git+https://gitlab.com/fa_rfro_mwrong/ghu.git?rev=0d27a59#0d27a59eb9f88e013f017462d620d9e495918eaa"
+source = "git+https://gitlab.com/puterize/ghu.git?branch=master#3c5436d6ff6b4e443d3b22c62126ad196ac8a4ad"
 dependencies = [
  "bytes",
  "clap",
+ "clap_complete",
  "futures",
  "octocrab",
  "osarch 0.2.0 (git+https://github.com/kindlychung/osarch.git?branch=master)",
