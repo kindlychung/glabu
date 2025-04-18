@@ -112,4 +112,13 @@ pub enum Commands {
         #[arg(short = 'v', long)]
         package_version: String,
     },
+    /// Generates shell completion scripts
+    Completions(CompletionsArgs),
+}
+
+#[derive(clap::Args, Debug)]
+pub struct CompletionsArgs {
+    /// The shell to generate completions for
+    #[arg(value_enum)]
+    pub shell: clap_complete::Shell,
 }
