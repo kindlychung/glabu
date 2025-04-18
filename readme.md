@@ -14,11 +14,14 @@ cargo build --release --package glabu
 cargo zigbuild -r --target x86_64-unknown-linux-musl --target aarch64-unknown-linux-musl  --package glabu 
 ```
 
-## Shell completion
-
 ## Upload package to gitlab
 
 ```bash
 cargo run -p package_release
 ```
 
+## Shell completion
+
+```bash
+glabu completion bash > $HOME/.bash_completion.d/glabu
+```
