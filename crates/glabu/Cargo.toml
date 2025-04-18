@@ -10,7 +10,7 @@ repository = "https://gitlab.com/puterize/glabu"
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 clap_complete = "4"
-ghu = { git = "https://gitlab.com/fa_rfro_mwrong/ghu.git", rev = "0d27a59" }
+ghu = { git = "https://gitlab.com/puterize/ghu.git", branch = "master" }
 tokio = { version = "1", features = ["full"] }
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
