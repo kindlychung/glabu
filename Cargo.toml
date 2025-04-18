@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
   "crates/*",
-  "rust_scripts/*",
+  "scripts/rust/*",
 ]
 
 [workspace.dependencies]
