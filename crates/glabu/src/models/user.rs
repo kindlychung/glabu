@@ -26,21 +26,13 @@ pub struct User {
     pub last_activity_on: Option<String>, // Date as "YYYY-MM-DD"
     #[serde(default)]
     pub last_sign_in_at: Option<String>, // ISO 8601 timestamp as string
-    pub linkedin: String,
-    pub local_time: String,
-    pub location: String,
-    pub locked: bool,
     pub name: String,
     pub organization: String,
     pub private_profile: bool,
     pub projects_limit: i64,
-    pub pronouns: String,
     pub public_email: String,
     pub shared_runners_minutes_limit: Option<i64>,
-    pub skype: String,
     pub state: String,
-    pub theme_id: i64,
-    pub twitter: String,
     pub two_factor_enabled: bool,
     pub username: String,
     pub web_url: String,
